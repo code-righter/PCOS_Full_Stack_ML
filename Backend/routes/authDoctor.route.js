@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { signInDoctor, signOutDoctor,signUpDoctor } from "../controllers/authDoctor.controller.js";
+import { signInDoctor, signOutDoctor } from "../controllers/authDoctor.controller.js";
 import { authorizeDoctor } from "../middleware/authDoctor.middleware.js";
 
 const authRouterDoctor = Router()
