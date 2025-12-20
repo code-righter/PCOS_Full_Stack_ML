@@ -16,8 +16,6 @@ app.use(express.json())
 app.use(express.urlencoded({extended : false}))
 app.use(cors())
 
-// Configure Morgan to stream http logs to our Winston logger
-// Format: Method URL Status ResponseTime
 const morganFormat = ':method :url :status :response-time ms';
 
 app.use(morgan(morganFormat, {
@@ -36,7 +34,6 @@ app.use(morgan(morganFormat, {
   },
 }));
 
-// --- 2. ROUTES ---
 
 app.get('/', (req, res) => {
     // Manual Log for specific logic

@@ -4,7 +4,7 @@ import { getPatientTimeline, getPersonalData, setPersonalData} from "../controll
 
 const patientRouter = Router()
 
-patientRouter.get('/updateData', verifySession, getPersonalData);// get personal data update
+patientRouter.get('/personalInfo', verifySession, getPersonalData);// get personal data update
 patientRouter.post('/updateData', verifySession, setPersonalData);// set personal data update
 patientRouter.post('/getRequestedData', verifySession, getPatientTimeline);  // patient history
 
