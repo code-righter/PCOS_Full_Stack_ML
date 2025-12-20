@@ -3,5 +3,5 @@ node_modules
 # Keep environment variables out of version control
 .env
 
-Backend/prisma/migrations/
-Backend/prisma/prisma/
+prisma/migrations/
+prisma/prisma/
