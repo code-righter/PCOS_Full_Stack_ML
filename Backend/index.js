@@ -2,8 +2,9 @@ import express from 'express'
 import cors from 'cors'
 import morgan from 'morgan' // Import Morgan
 import { PORT } from './config/env.js'
-import authRouterPatient from './routes/authPatient.route.js'
-import authRouterDoctor from './routes/authDoctor.route.js'
+
+// routers 
+import { authRouterDoctor, doctorRouter, patientRouter, authRouterPatient } from './routes/index.route.js';
 import prisma from './db/prisma.js'
 import logger from './utils/logger.js' // Import your new Logger
 
@@ -66,8 +67,9 @@ app.get('/getUsers', async (req, res) => {
 
 // Mounting Routes
 app.use('/api/v1/auth/patient', authRouterPatient);
-app.use('/api/v1/patient', authRouterPatient);
-app.use('api/v1/auth/doctor', authRouterDoctor);
+app.use('/api/v1/patient', patientRouter);
+app.use('/api/v1/auth/doctor', authRouterDoctor);
+app.use('/api/v1/doctor', doctorRouter);
 
 // --- 3. SERVER START ---
 

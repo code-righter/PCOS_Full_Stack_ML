@@ -1,6 +1,5 @@
 import bcrypt from "bcrypt";
 import prisma from '../db/prisma.js';
-import prisma from "../db/prisma.js";
 import { signJwt } from "../utils/jwt.js";
 
 export const signInDoctor = async (req, res) => {

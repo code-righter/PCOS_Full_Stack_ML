@@ -1,4 +1,4 @@
-import prisma from "../db/prisma";
+import prisma from "../db/prisma.js";
 
 export const getDocDashboardMetrics = async (req, res) => {
   try {
@@ -90,22 +90,58 @@ export const getPatientTimeline = async (req, res) => {
       });
     }
 
-    // 🔥 Single optimized query
+    // 1️⃣ Fetch patient lifestyle & health info (ONE TIME)
+    const patientInfo = await prisma.patientPersonalInfo.findUnique({
+      where: { email: patientEmail },
+      select: {
+        name: true,
+        age: true,
+
+        cycleLength: true,
+        cycleType: true,
+
+        skinDarkening: true,
+        hairGrowth: true,
+        pimples: true,
+        hairLoss: true,
+        weightGain: true,
+
+        fastFood: true,
+        hip: true,
+        waist: true,
+      },
+    });
+
+    if (!patientInfo) {
+      return res.status(404).json({
+        error: "Patient not found",
+      });
+    }
+
+    // 2️⃣ Fetch timeline (latest → oldest)
     const timeline = await prisma.dataForDocAnalysis.findMany({
       where: {
         patientId: patientEmail,
-        doctorId: doctorEmail, // ensures doctor can only see own patients
+        doctorId: doctorEmail,
       },
       orderBy: {
-        createdAt: "desc", // latest → oldest
+        createdAt: "desc",
       },
       select: {
         id: true,
         status: true,
         createdAt: true,
 
-        // Optional: include input summary only
-        inputData: true,
+        sensorData: {
+          select: {
+            spo2: true,
+            temperature: true,
+            heartRate: true,
+            height: true,
+            weight: true,
+            recordedAt: true,
+          },
+        },
 
         mlResult: {
           select: {
@@ -128,7 +164,7 @@ export const getPatientTimeline = async (req, res) => {
     });
 
     return res.status(200).json({
-      patientEmail,
+      patient: patientInfo,
       totalRecords: timeline.length,
       timeline,
     });

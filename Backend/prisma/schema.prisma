@@ -62,8 +62,9 @@ model PatientPersonalInfo {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  analyses DataForDocAnalysis[]  
-
+  analyses    DataForDocAnalysis[]
+  sensorData  SensorData[] 
+  
   @@index([email])
 }
 
@@ -90,27 +91,45 @@ model Doctor {
   reports          DoctorReport[]
 }
 
-model SensorData{
-  id String @id @default(uuid())
-  patientId String
+model SensorData {
+  id           String   @id @default(uuid())
+
+  patientEmail String
+  spo2         Float?
+  temperature  Float?
+  heartRate    Int?
+  height       Float?
+  weight       Float?
+
+  recordedAt   DateTime @default(now())
+
+  analysis     DataForDocAnalysis?
+  patient      PatientPersonalInfo @relation(fields: [patientEmail],references: [email])
+
+  @@index([patientEmail])
 }
+
 
 model DataForDocAnalysis {
-  id        String   @id @default(uuid())
-  patientId String
-  doctorId  String?
+  id            String   @id @default(uuid())
+  patientId     String
+  doctorId      String?
 
-  status    AnalysisStatus @default(PENDING)
+  sensorDataId  String   @unique
+  status        AnalysisStatus @default(PENDING)
 
-  inputData Json        // data sent to ML
-  createdAt DateTime    @default(now())
+  createdAt     DateTime @default(now())
 
-  mlResult     MLResult?
-  doctorReport DoctorReport?
+  mlResult      MLResult?
+  doctorReport  DoctorReport?
 
-  patient PatientPersonalInfo   @relation(fields: [patientId], references: [email])
-  doctor  Doctor?               @relation(fields: [doctorId], references: [email])
+  patient       PatientPersonalInfo @relation(fields: [patientId],references: [email])
+  doctor        Doctor? @relation(fields: [doctorId],references: [email])
+  sensorData    SensorData @relation(fields: [sensorDataId],references: [id])
+
+  @@index([patientId, doctorId])
 }
+
 
 model MLResult {
   id              String   @id @default(uuid())

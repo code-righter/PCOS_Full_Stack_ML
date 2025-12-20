@@ -175,7 +175,7 @@ const Register = () => {
                         value={formData.name}
                         onChange={handleChange}
                         className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/70 focus:border-transparent outline-none transition bg-slate-50/60 focus:bg-white"
-                        placeholder="First Name Last Name"
+                        placeholder="FirstName LastName"
                       />
                     </div>
                     <div>
@@ -187,7 +187,7 @@ const Register = () => {
                         value={formData.phoneNumber}
                         onChange={handleChange}
                         className="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/70 focus:border-transparent outline-none transition bg-slate-50/60 focus:bg-white"
-                        placeholder="+91 98765 43210"
+                        placeholder="10 digit Phone Number"
                       />
                     </div>
                   </div>
