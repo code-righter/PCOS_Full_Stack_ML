@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  password     String
+  userType     String   // 'patient' | 'doctor'
+  isLoggedIn   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  patientPersonalInfo PatientPersonalInfo?
+
+  @@index([email])
+}
+
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  otp       String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model PatientPersonalInfo {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+
+  // duplicated identity fields (by design)
+  name         String
+  email        String   @unique
+  phoneNumber  String
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  age          Int
+
+  // ───── Cycle Information ─────
+  cycleLength  Int
+  cycleType    CycleType
+
+  // ───── Symptoms ─────
+  skinDarkening Boolean
+  hairGrowth    Boolean
+  pimples       Boolean
+  hairLoss      Boolean
+  weightGain    Boolean
+
+  // ───── Lifestyle ─────
+  fastFood     Boolean
+
+  // ───── Body Measurements ─────
+  hip          Float
+  waist        Float
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  analyses DataForDocAnalysis[]  
+
+  @@index([email])
+}
+
+enum CycleType {
+  REGULAR
+  IRREGULAR
+}
+
+// Doctors Profile 
+model Doctor {
+  id              String   @id @default(uuid())
+  email           String   @unique
+  password        String
+
+  name            String
+  specialization  String
+  licenseNumber   String   @unique
+  experienceYears Int?
+  hospital        String?
+
+  createdAt       DateTime @default(now())
+
+  assignedAnalyses DataForDocAnalysis[]
+  reports          DoctorReport[]
+}
+
+model DataForDocAnalysis {
+  id        String   @id @default(uuid())
+  patientId String
+  doctorId  String?
+
+  status    AnalysisStatus @default(PENDING)
+
+  inputData Json        // data sent to ML
+  createdAt DateTime    @default(now())
+
+  mlResult     MLResult?
+  doctorReport DoctorReport?
+
+  patient PatientPersonalInfo   @relation(fields: [patientId], references: [email])
+  doctor  Doctor?               @relation(fields: [doctorId], references: [email])
+}
+
+model MLResult {
+  id              String   @id @default(uuid())
+  analysisId      String   @unique
+
+  prediction      String   // PCOS / No PCOS
+  confidenceScore Float
+  modelVersion    String   
+  generatedAt     DateTime @default(now())
+
+  analysis DataForDocAnalysis @relation(fields: [analysisId], references: [id])
+}
+
+model DoctorReport {
+  id           String   @id @default(uuid())
+  analysisId   String   @unique
+  doctorId     String
+
+  finalVerdict String
+  prescription Json?
+  notes        String?
+  approvedAt   DateTime @default(now())
+
+  analysis DataForDocAnalysis @relation(fields: [analysisId], references: [id])
+  doctor   Doctor             @relation(fields: [doctorId], references: [email])
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+}
+
+enum AnalysisStatus {
+  PENDING
+  ML_PROCESSED
+  DOCTOR_REVIEWED
+  COMPLETED
+}

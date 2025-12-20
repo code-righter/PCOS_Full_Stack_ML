@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCOS Detection - Doctor Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-sans">
+    
+    <!-- Sidebar -->
+    <div class="fixed left-0 top-0 h-full w-64 bg-white shadow-lg z-50">
+        <div class="p-6 border-b">
+            <h1 class="text-xl font-bold text-gray-800">PCOS Detect</h1>
+            <p class="text-sm text-gray-500 mt-1">Doctor Portal</p>
+        </div>
+        
+        <nav class="mt-6">
+            <a href="#overview" class="flex items-center px-6 py-3 text-gray-700 bg-blue-50 border-r-4 border-blue-600">
+                <i class="fas fa-chart-line w-5"></i>
+                <span class="ml-3 font-medium">Overview</span>
+            </a>
+            <a href="#pending" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition">
+                <i class="fas fa-clock w-5"></i>
+                <span class="ml-3">Pending Requests</span>
+                <span class="ml-auto bg-red-500 text-white text-xs px-2 py-1 rounded-full">8</span>
+            </a>
+            <a href="#analysis" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition">
+                <i class="fas fa-brain w-5"></i>
+                <span class="ml-3">ML Analysis</span>
+            </a>
+            <a href="#prescriptions" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition">
+                <i class="fas fa-prescription w-5"></i>
+                <span class="ml-3">Prescriptions</span>
+            </a>
+            <a href="#followups" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition">
+                <i class="fas fa-calendar-check w-5"></i>
+                <span class="ml-3">Follow-ups</span>
+            </a>
+            <a href="#history" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition">
+                <i class="fas fa-history w-5"></i>
+                <span class="ml-3">Patient History</span>
+            </a>
+            <a href="#reports" class="flex items-center px-6 py-3 text-gray-600 hover:bg-gray-50 transition">
+                <i class="fas fa-file-medical w-5"></i>
+                <span class="ml-3">Reports</span>
+            </a>
+        </nav>
+
+        <div class="absolute bottom-0 w-64 p-6 border-t">
+            <div class="flex items-center">
+                <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    DR
+                </div>
+                <div class="ml-3">
+                    <p class="text-sm font-medium text-gray-800">Dr. Smith</p>
+                    <p class="text-xs text-gray-500">Gynecologist</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64 p-8">
+        
+        <!-- Header -->
+        <div class="flex justify-between items-center mb-8">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-800">Dashboard</h2>
+                <p class="text-gray-500 mt-1">Thursday, December 18, 2025</p>
+            </div>
+            <div class="flex gap-4">
+                <button class="px-4 py-2 bg-white border rounded-lg hover:bg-gray-50 transition">
+                    <i class="fas fa-bell text-gray-600"></i>
+                </button>
+                <button class="px-4 py-2 bg-white border rounded-lg hover:bg-gray-50 transition">
+                    <i class="fas fa-cog text-gray-600"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">Pending Requests</p>
+                        <h3 class="text-3xl font-bold text-gray-800">8</h3>
+                        <p class="text-xs text-red-500 mt-2">↑ 3 new today</p>
+                    </div>
+                    <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-red-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">Analyzed Today</p>
+                        <h3 class="text-3xl font-bold text-gray-800">12</h3>
+                        <p class="text-xs text-green-500 mt-2">↑ 20% from yesterday</p>
+                    </div>
+                    <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-brain text-blue-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">Follow-ups Due</p>
+                        <h3 class="text-3xl font-bold text-gray-800">5</h3>
+                        <p class="text-xs text-yellow-500 mt-2">2 urgent</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-calendar-check text-yellow-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-500 mb-1">Total Patients</p>
+                        <h3 class="text-3xl font-bold text-gray-800">247</h3>
+                        <p class="text-xs text-green-500 mt-2">↑ 15 this month</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Pending Requests Table -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-sm border">
+                <div class="p-6 border-b flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-800">Pending Analysis Requests</h3>
+                    <button class="text-sm text-blue-600 hover:text-blue-700">View All</button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Patient</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Age</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Submitted</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Priority</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold text-sm">
+                                            SP
+                                        </div>
+                                        <span class="ml-3 text-sm font-medium text-gray-800">Sarah Patel</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">28</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">2 hours ago</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full">Urgent</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">Review</button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold text-sm">
+                                            MK
+                                        </div>
+                                        <span class="ml-3 text-sm font-medium text-gray-800">Maria Khan</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">32</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">5 hours ago</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full">Normal</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">Review</button>
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-gray-50">
+                                <td class="px-6 py-4">
+                                    <div class="flex items-center">
+                                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-600 font-semibold text-sm">
+                                            AS
+                                        </div>
+                                        <span class="ml-3 text-sm font-medium text-gray-800">Anita Sharma</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">25</td>
+                                <td class="px-6 py-4 text-sm text-gray-600">1 day ago</td>
+                                <td class="px-6 py-4">
+                                    <span class="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-700 rounded-full">Normal</span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <button class="text-blue-600 hover:text-blue-800 text-sm font-medium">Review</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Recent Activity & Quick Actions -->
+            <div class="space-y-6">
+                
+                <!-- Quick Actions -->
+                <div class="bg-white rounded-xl shadow-sm border p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Quick Actions</h3>
+                    <div class="space-y-3">
+                        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-lg font-medium transition flex items-center justify-center">
+                            <i class="fas fa-plus mr-2"></i>
+                            New Analysis
+                        </button>
+                        <button class="w-full bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                            <i class="fas fa-file-prescription mr-2"></i>
+                            Create Prescription
+                        </button>
+                        <button class="w-full bg-white hover:bg-gray-50 border border-gray-300 text-gray-700 py-3 rounded-lg font-medium transition flex items-center justify-center">
+                            <i class="fas fa-search mr-2"></i>
+                            Search Patient
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Upcoming Follow-ups -->
+                <div class="bg-white rounded-xl shadow-sm border">
+                    <div class="p-6 border-b">
+                        <h3 class="text-lg font-semibold text-gray-800">Upcoming Follow-ups</h3>
+                    </div>
+                    <div class="p-6 space-y-4">
+                        <div class="flex items-start pb-4 border-b">
+                            <div class="w-2 h-2 bg-red-500 rounded-full mt-2 mr-3"></div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">Priya Singh</p>
+                                <p class="text-xs text-gray-500">Today, 3:00 PM</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start pb-4 border-b">
+                            <div class="w-2 h-2 bg-yellow-500 rounded-full mt-2 mr-3"></div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">Neha Reddy</p>
+                                <p class="text-xs text-gray-500">Tomorrow, 10:30 AM</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start">
+                            <div class="w-2 h-2 bg-green-500 rounded-full mt-2 mr-3"></div>
+                            <div class="flex-1">
+                                <p class="text-sm font-medium text-gray-800">Kavya Mehta</p>
+                                <p class="text-xs text-gray-500">Dec 20, 2:00 PM</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ML Analysis Section -->
+        <div class="mt-6 bg-white rounded-xl shadow-sm border">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">Patient Data Analysis</h3>
+                <div class="flex gap-2">
+                    <button class="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition">All</button>
+                    <button class="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg">Awaiting Review</button>
+                    <button class="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition">Completed</button>
+                </div>
+            </div>
+            
+            <!-- Patient Detail Card (Example) -->
+            <div class="p-6 border-b hover:bg-gray-50 transition">
+                <div class="flex justify-between items-start">
+                    <div class="flex-1">
+                        <div class="flex items-center mb-3">
+                            <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center text-purple-600 font-semibold">
+                                SP
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="font-semibold text-gray-800">Sarah Patel</h4>
+                                <p class="text-sm text-gray-500">Patient ID: #P2847 | Age: 28 | Submitted: 2 hours ago</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Patient Data Summary -->
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-500 mb-1">BMI</p>
+                                <p class="text-sm font-semibold text-gray-800">28.5 kg/m²</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-500 mb-1">Cycle Length</p>
+                                <p class="text-sm font-semibold text-gray-800">45 days</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-500 mb-1">Hormonal</p>
+                                <p class="text-sm font-semibold text-gray-800">Elevated</p>
+                            </div>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-xs text-gray-500 mb-1">Symptoms</p>
+                                <p class="text-sm font-semibold text-gray-800">5 reported</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ml-6 flex flex-col gap-2">
+                        <button class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg font-medium transition">
+                            <i class="fas fa-brain mr-2"></i>Run ML Model
+                        </button>
+                        <button class="px-6 py-2 bg-white hover:bg-gray-50 border text-gray-700 text-sm rounded-lg font-medium transition">
+                            <i class="fas fa-eye mr-2"></i>View Full Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ML Result Card (After Analysis) -->
+            <div class="p-6 bg-blue-50">
+                <div class="flex items-start justify-between">
+                    <div class="flex-1">
+                        <div class="flex items-center mb-3">
+                            <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                                <i class="fas fa-check text-green-600 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="font-semibold text-gray-800">Maria Khan - Analysis Complete</h4>
+                                <p class="text-sm text-gray-600">Analyzed 3 hours ago | Confidence: 87%</p>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-white p-4 rounded-lg mb-4">
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm font-medium text-gray-700">ML Prediction:</p>
+                                <span class="px-3 py-1 bg-orange-100 text-orange-700 text-sm font-semibold rounded-full">PCOS Detected</span>
+                            </div>
+                            <div class="flex items-center justify-between mb-2">
+                                <p class="text-sm font-medium text-gray-700">Risk Level:</p>
+                                <span class="px-3 py-1 bg-yellow-100 text-yellow-700 text-sm font-semibold rounded-full">Moderate</span>
+                            </div>
+                            <div class="mt-3 pt-3 border-t">
+                                <p class="text-xs text-gray-600 mb-2">Key Contributing Factors:</p>
+                                <div class="flex flex-wrap gap-2">
+                                    <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">Irregular cycles</span>
+                                    <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">Elevated androgens</span>
+                                    <span class="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded">High BMI</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ml-6 flex flex-col gap-2">
+                        <button class="px-6 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg font-medium transition">
+                            <i class="fas fa-prescription mr-2"></i>Write Prescription
+                        </button>
+                        <button class="px-6 py-2 bg-white hover:bg-gray-50 border text-gray-700 text-sm rounded-lg font-medium transition">
+                            <i class="fas fa-comments mr-2"></i>Message Patient
+                        </button>
+                        <button class="px-6 py-2 bg-white hover:bg-gray-50 border text-gray-700 text-sm rounded-lg font-medium transition">
+                            <i class="fas fa-calendar-plus mr-2"></i>Schedule Follow-up
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prescription Modal (Hidden by default - shown on click) -->
+        <div id="prescriptionModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+                <div class="p-6 border-b flex justify-between items-center">
+                    <h3 class="text-xl font-semibold text-gray-800">Create Prescription</h3>
+                    <button class="text-gray-400 hover:text-gray-600">
+                        <i class="fas fa-times text-xl"></i>
+                    </button>
+                </div>
+                
+                <div class="p-6">
+                    <!-- Patient Info -->
+                    <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                        <div class="flex items-center">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-semibold">
+                                MK
+                            </div>
+                            <div class="ml-4">
+                                <h4 class="font-semibold text-gray-800">Maria Khan</h4>
+                                <p class="text-sm text-gray-600">Age: 32 | ID: #P2891</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Diagnosis -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Diagnosis</label>
+                        <textarea class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" placeholder="Enter diagnosis...">PCOS (Polycystic Ovary Syndrome) - Moderate severity with metabolic concerns</textarea>
+                    </div>
+
+                    <!-- Medications -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Medications</label>
+                        <div class="space-y-3">
+                            <div class="flex gap-3 items-start">
+                                <input type="text" class="flex-1 border border-gray-300 rounded-lg p-3 text-sm" placeholder="Medication name" value="Metformin 500mg">
+                                <input type="text" class="w-32 border border-gray-300 rounded-lg p-3 text-sm" placeholder="Dosage" value="Twice daily">
+                                <input type="text" class="w-24 border border-gray-300 rounded-lg p-3 text-sm" placeholder="Duration" value="30 days">
+                                <button class="text-red-500 hover:text-red-700"><i class="fas fa-times"></i></button>
+                            </div>
+                            <div class="flex gap-3 items-start">
+                                <input type="text" class="flex-1 border border-gray-300 rounded-lg p-3 text-sm" placeholder="Medication name" value="Vitamin D3">
+                                <input type="text" class="w-32 border border-gray-300 rounded-lg p-3 text-sm" placeholder="Dosage" value="Once daily">
+                                <input type="text" class="w-24 border border-gray-300 rounded-lg p-3 text-sm" placeholder="Duration" value="60 days">
+                                <button class="text-red-500 hover:text-red-700"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <button class="mt-3 text-blue-600 hover:text-blue-700 text-sm font-medium">
+                            <i class="fas fa-plus mr-1"></i>Add Medication
+                        </button>
+                    </div>
+
+                    <!-- Recommendations -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Lifestyle Recommendations</label>
+                        <textarea class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="4" placeholder="Diet, exercise, and lifestyle advice...">- Follow low GI diet, reduce refined carbohydrates
+- Exercise 30 minutes daily (walking/yoga)
+- Monitor weight and maintain healthy BMI
+- Adequate sleep (7-8 hours)</textarea>
+                    </div>
+
+                    <!-- Follow-up -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Follow-up Schedule</label>
+                        <div class="flex gap-4">
+                            <input type="date" class="flex-1 border border-gray-300 rounded-lg p-3 text-sm">
+                            <select class="flex-1 border border-gray-300 rounded-lg p-3 text-sm">
+                                <option>In-person visit</option>
+                                <option>Telemedicine</option>
+                                <option>Lab tests only</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Notes to Patient -->
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Message to Patient</label>
+                        <textarea class="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent" rows="3" placeholder="Personal message...">Your results indicate PCOS. The prescribed treatment plan will help manage symptoms. Please follow the lifestyle recommendations strictly and maintain regular follow-ups.</textarea>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="flex gap-3 justify-end">
+                        <button class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
+                            Save as Draft
+                        </button>
+                        <button class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition">
+                            <i class="fas fa-paper-plane mr-2"></i>Send to Patient
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Patient History Thread -->
+        <div class="mt-6 bg-white rounded-xl shadow-sm border">
+            <div class="p-6 border-b">
+                <h3 class="text-lg font-semibold text-gray-800">Patient History Thread</h3>
+                <p class="text-sm text-gray-500 mt-1">View complete interaction history with timeline</p>
+            </div>
+            
+            <div class="p-6">
+                <!-- Timeline Item 1 -->
+                <div class="flex gap-4 pb-6 border-l-2 border-gray-200 pl-6 ml-2 relative">
+                    <div class="absolute -left-3 top-0 w-6 h-6 bg-green-500 rounded-full border-4 border-white"></div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold text-gray-800">Prescription Sent</h4>
+                            <span class="text-sm text-gray-500">Dec 15, 2025 - 2:30 PM</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">Sent PCOS management prescription with Metformin and lifestyle recommendations</p>
+                        <button class="text-xs text-blue-600 hover:text-blue-700">View Details</button>
+                    </div>
+                </div>
+
+                <!-- Timeline Item 2 -->
+                <div class="flex gap-4 pb-6 border-l-2 border-gray-200 pl-6 ml-2 relative">
+                    <div class="absolute -left-3 top-0 w-6 h-6 bg-blue-500 rounded-full border-4 border-white"></div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold text-gray-800">ML Analysis Complete</h4>
+                            <span class="text-sm text-gray-500">Dec 15, 2025 - 11:15 AM</span>
+                        </div>
+                        <div class="bg-blue-50 p-3 rounded-lg mb-2">
+                            <p class="text-sm font-medium text-gray-800">Result: PCOS Detected (87% confidence)</p>
+                            <p class="text-xs text-gray-600 mt-1">Risk: Moderate</p>
+                        </div>
+                        <button class="text-xs text-blue-600 hover:text-blue-700">View Full Report</button>
+                    </div>
+                </div>
+
+                <!-- Timeline Item 3 -->
+                <div class="flex gap-4 pb-6 border-l-2 border-gray-200 pl-6 ml-2 relative">
+                    <div class="absolute -left-3 top-0 w-6 h-6 bg-purple-500 rounded-full border-4 border-white"></div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold text-gray-800">Data Submitted</h4>
+                            <span class="text-sm text-gray-500">Dec 15, 2025 - 9:00 AM</span>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-2">Patient submitted medical data and symptoms questionnaire</p>
+                        <div class="flex gap-2">
+                            <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">Lab Results</span>
+                            <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">Symptoms</span>
+                            <span class="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded">Medical History</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline Item 4 -->
+                <div class="flex gap-4 pl-6 ml-2 relative">
+                    <div class="absolute -left-3 top-0 w-6 h-6 bg-gray-300 rounded-full border-4 border-white"></div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-semibold text-gray-800">Patient Registered</h4>
+                            <span class="text-sm text-gray-500">Dec 10, 2025</span>
+                        </div>
+                        <p class="text-sm text-gray-600">New patient registration completed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Simple tab switching functionality
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                document.querySelectorAll('nav a').forEach(l => {
+                    l.classList.remove('bg-blue-50', 'border-r-4', 'border-blue-600', 'text-gray-700');
+                    l.classList.add('text-gray-600');
+                });
+                e.target.closest('a').classList.add('bg-blue-50', 'border-r-4', 'border-blue-600', 'text-gray-700');
+                e.target.closest('a').classList.remove('text-gray-600');
+            });
+        });
+    </script>
+
+</body>
+</html>
