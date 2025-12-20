@@ -90,6 +90,11 @@ model Doctor {
   reports          DoctorReport[]
 }
 
+model SensorData{
+  id String @id @default(uuid())
+  patientId String
+}
+
 model DataForDocAnalysis {
   id        String   @id @default(uuid())
   patientId String
