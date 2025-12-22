@@ -2,6 +2,47 @@ import bcrypt from "bcrypt";
 import prisma from '../db/prisma.js';
 import { signJwt } from "../utils/jwt.js";
 
+
+export const signUpDoctor = async (req, res) =>{
+  try{
+    const {name, email, password, licenseNumber} = req.body;
+
+    if(!email || !password || ! name || !licenseNumber){
+      return res.status(400).json({
+        error : "Incomplete form filled",
+      })
+    }
+
+    const existingUser = await primsa.doctor.findUnique({
+      where: {email}
+    })
+
+    if(existingUser){
+      return res.status(409).json({ error : "Doctor already exists"})
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const doctor = await prisma.doctor.create({
+      data : {
+        name,
+        email,
+        hashedPassword,
+        licenseNumber
+      }
+    })
+
+    return res.status(201).json({
+      message: "Account has been created successfully",
+      doctor
+    });
+
+  }catch(err){
+    console.log(err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
 export const signInDoctor = async (req, res) => {
   try {
     const { email, password } = req.body;

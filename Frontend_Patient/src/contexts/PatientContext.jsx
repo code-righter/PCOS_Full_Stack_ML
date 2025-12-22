@@ -30,18 +30,16 @@ export const PatientProvider = ({ children }) => {
     const submitPatientData = async (updatedData) => {
         try {
             setLoading(true);
-            // 1. Call API
             const data = await patientService.setPersonalInfo(updatedData);
             
-            // 2. Update local state immediately so UI reflects changes
             setPatientData(data); 
             setError(null);
             
-            return true; // Return success for the UI to handle alerts
+            return true; 
         } catch (err) {
             console.error('Failed to update new data', err);
             setError(err.response?.data?.message || "Failed to update data");
-            return false; // Return failure
+            return false; 
         } finally {
             setLoading(false);
         }

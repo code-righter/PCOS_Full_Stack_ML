@@ -1,0 +1,29 @@
+import api from './api'
+
+export const doctorService = {
+    getDocDashboardMetric : async () =>{
+        const response = await api.get('/dashboardMetrics')
+        console.log(response.data);
+        return response.data;
+    },
+
+    getPendingPatientsData : async () =>{
+        const respone = await api.get('/pendingPatients')
+        console.log(respone.data)
+        return respone.data
+    },
+
+    getAllPatients : async(page, limit)=>{
+        const start = page || 1;
+        const end = limit || 10;
+        const response = api.get(`/api/doctor/patients?page=${start}&limit=${end}`)
+        console.log(response.data)
+        return response.data;
+    },
+
+    getPatientInfo : async()=>{
+        const response = await api.get('/patientInfo');
+        console.log(response.data);
+        return response.data
+    }
+}

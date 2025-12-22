@@ -78,6 +78,69 @@ export const getPendingPatientsData = async (req, res) => {
   }
 };
 
+export const getAllPatients = async (req, res) => {
+  try {
+    const doctorEmail = req.doctor.email;
+
+    const page = Number(req.query.page || 1);
+    const limit = Number(req.query.limit || 10);
+    const skip = (page - 1) * limit;
+
+    const patients = await prisma.dataForDocAnalysis.findMany({
+      where: {
+        doctorId: doctorEmail,
+      },
+      orderBy: {
+        createdAt: "desc", 
+      },
+      distinct: ["patientId"], 
+      skip,
+      take: limit,
+      select: {
+        patientId: true,
+        createdAt: true,
+
+        patient: {
+          select: {
+            name: true,
+            email: true,
+            age: true,
+            cycleType: true,
+          },
+        },
+      },
+    });
+
+    const totalPatients = await prisma.dataForDocAnalysis.findMany({
+      where: {
+        doctorId: doctorEmail,
+      },
+      select: {
+        patientId: true,
+      },
+      distinct: ["patientId"],
+    });
+
+    return res.status(200).json({
+      page,
+      limit,
+      totalPatients: totalPatients.length,
+      totalPages: Math.ceil(totalPatients.length / limit),
+      data: patients.map((p) => ({
+        lastInteractionAt: p.createdAt,
+        ...p.patient,
+      })),
+    });
+
+  } catch (error) {
+    console.error("Get all patients error:", error);
+    return res.status(500).json({
+      error: "Failed to fetch patients",
+    });
+  }
+};
+
+
 
 export const getPatientTimeline = async (req, res) => {
   try {

@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Shield, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const DoctorSignIn = () => {
+  const {login} = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -28,25 +30,10 @@ const DoctorSignIn = () => {
     setError('');
 
     try {
-      // Simulate API call - Replace with actual authentication
-      console.log('Doctor login attempt:', {
-        email: formData.email,
-        rememberMe: formData.rememberMe
-      });
-
-      // Simulated delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Check credentials (replace with actual API call)
-      if (formData.email && formData.password) {
-        alert('Doctor login successful! Redirecting to dashboard...');
-        // Redirect to doctor dashboard
-        // window.location.href = '/doctor/dashboard';
-      } else {
-        setError('Invalid credentials. Please try again.');
-      }
+      await login (formData.email, formData.password);
+      navigate('/dashboard');
     } catch (err) {
-      setError('An error occurred. Please try again.');
+      setError('Invalid email or password. Please try again.');
       console.error('Login error:', err);
     } finally {
       setIsLoading(false);
