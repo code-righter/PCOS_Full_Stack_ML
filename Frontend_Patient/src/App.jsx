@@ -36,6 +36,7 @@ function App() {
         <Route index element={<Home />} /> 
         <Route path="test" element={<Test />} />
         <Route path="update-info" element={<UpdateInfo />} />
+        <Route path="history" element={<History />} />
       </Route>
 
       {/* Redirect root to login */}

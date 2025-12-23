@@ -3,416 +3,546 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Patient Portal - Sign In / Sign Up</title>
+  <title>Patient History - PCOS Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    .timeline-line {
+      position: absolute;
+      left: 19px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(180deg, #4f46e5 0%, #a78bfa 100%);
+    }
+    .timeline-dot {
+      position: absolute;
+      left: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #d1d5db;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+      z-index: 10;
+    }
+    .timeline-dot.active {
+      border-color: #4f46e5;
+      background: #4f46e5;
+      box-shadow: 0 0 0 8px rgba(79, 70, 229, 0.1);
+      transform: scale(1.15);
+    }
+    .timeline-dot.active::after {
+      content: "✓";
+      color: #ffffff;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    .timeline-card {
+      margin-left: 60px;
+      padding: 14px 16px;
+      background: #f9fafb;
+      border: 2px solid #e5e7eb;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      margin-bottom: 12px;
+    }
+    .timeline-card:hover {
+      border-color: #c7d2fe;
+      background: #f0f4ff;
+      transform: translateX(4px);
+    }
+    .timeline-card.active {
+      background: linear-gradient(135deg, #eef2ff 0%, #f5e8ff 100%);
+      border-color: #4f46e5;
+      box-shadow: 0 8px 16px rgba(79, 70, 229, 0.12);
+    }
+    .timeline-card-date {
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 2px;
+    }
+    .timeline-card-time {
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .detail-card {
+      border-radius: 16px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+      animation: fadeIn 0.4s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .detail-header {
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: #ffffff;
+      padding: 20px;
+    }
+    .detail-section {
+      padding: 16px 20px;
+      border-bottom: 1px solid #f3f4f6;
+    }
+    .detail-section:last-child {
+      border-bottom: none;
+    }
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+    }
+    .info-item {
+      background: #f9fafb;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border-left: 3px solid #4f46e5;
+    }
+    .info-label {
+      font-size: 11px;
+      color: #6b7280;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .info-value {
+      font-size: 13px;
+      color: #111827;
+      font-weight: 500;
+    }
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .status-pending {
+      background: #fffbeb;
+      color: #92400e;
+    }
+    .status-completed {
+      background: #ecfdf3;
+      color: #166534;
+    }
+    .status-reviewed {
+      background: #ede9fe;
+      color: #5b21b6;
+    }
+    .sidebar-bg {
+      background: linear-gradient(180deg, #1d4ed8, #4c6fff);
+    }
+    .notes-section {
+      background: #fffbeb;
+      border-left: 3px solid #f59e0b;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #78350f;
+      line-height: 1.5;
+      margin-top: 8px;
+    }
+  </style>
 </head>
-<body class="min-h-screen bg-linear-to-br from-indigo-50 via-sky-50 to-blue-100 flex items-center justify-center p-4 relative">
-
-  <!-- Doctor Login Button -->
-  <a
-    href="doctor-login.html"
-    class="absolute top-6 right-6 bg-white/90 hover:bg-white text-indigo-700 px-5 py-2.5 rounded-xl shadow-lg border border-indigo-100 transition duration-300 flex items-center gap-2 text-sm font-semibold"
-  >
-    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3z" />
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M19 21v-1a4 4 0 00-4-4H9a4 4 0 00-4 4v1" />
-    </svg>
-    Doctor Login
-  </a>
-
-  <div class="max-w-5xl w-full grid md:grid-cols-2 gap-8 items-center">
-
-    <!-- Left: Branding / Illustration -->
-    <div class="hidden md:flex flex-col gap-6">
-      <div class="bg-white/80 backdrop-blur-xl rounded-3xl border border-blue-100 shadow-xl p-6">
-        <div class="inline-flex items-center gap-3 bg-blue-50 px-4 py-2 rounded-full mb-4">
-          <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-          <span class="text-xs font-semibold text-blue-700">24/7 Patient Access</span>
-        </div>
-        <h1 class="text-3xl font-extrabold text-slate-900 mb-2">
-          Welcome to your Patient Portal
-        </h1>
-        <p class="text-sm text-slate-600">
-          Manage appointments, view reports, and stay connected with your doctor from a secure, easy-to-use dashboard.
-        </p>
-        <div class="mt-5 flex items-center gap-4">
-          <div class="flex -space-x-2">
-            <span class="w-8 h-8 rounded-full bg-linear-to-tr from-blue-500 to-indigo-500 border-2 border-white text-xs flex items-center justify-center text-white font-semibold">
-              P
-            </span>
-            <span class="w-8 h-8 rounded-full bg-linear-to-tr from-sky-400 to-blue-500 border-2 border-white text-xs flex items-center justify-center text-white font-semibold">
-              C
-            </span>
-            <span class="w-8 h-8 rounded-full bg-linear-to-tr from-emerald-400 to-teal-500 border-2 border-white text-xs flex items-center justify-center text-white font-semibold">
-              D
-            </span>
-          </div>
-          <div class="text-xs text-slate-500">
-            <p class="font-semibold text-slate-700">Trusted by thousands of patients</p>
-            <p>Secure, private, and HIPAA-ready backend compatible.</p>
-          </div>
-        </div>
+<body class="bg-slate-50">
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-64 sidebar-bg text-white p-6 shadow-lg">
+      <div class="mb-8">
+        <div class="text-2xl font-bold mb-1">HealthCare+</div>
+        <div class="text-sm text-blue-200">Patient Portal</div>
       </div>
 
-      <div class="grid grid-cols-2 gap-4">
-        <div class="bg-white/80 backdrop-blur-xl rounded-2xl border border-blue-100 shadow-md p-4">
-          <p class="text-xs text-slate-500 mb-1">Next Appointment</p>
-          <p class="text-sm font-semibold text-slate-800">Today, 4:30 PM</p>
-          <p class="text-xs text-blue-600 mt-1">With Dr. Smith (Cardiology)</p>
+      <nav class="space-y-3 mb-auto">
+        <div class="px-4 py-2 rounded-xl bg-blue-400 bg-opacity-40 text-white text-sm font-medium">
+          🏠 Home
         </div>
-        <div class="bg-linear-to-br from-blue-600 to-indigo-600 rounded-2xl shadow-lg p-4 text-white">
-          <p class="text-xs opacity-80 mb-1">Health Summary</p>
-          <p class="text-sm font-semibold">All vitals in normal range</p>
-          <p class="text-xs opacity-90 mt-1">Keep tracking your health regularly.</p>
+        <div class="px-4 py-2 rounded-xl text-blue-100 text-sm font-medium cursor-pointer hover:bg-blue-500 hover:bg-opacity-30 transition">
+          📋 Test
         </div>
+        <div class="px-4 py-2 rounded-xl text-blue-100 text-sm font-medium cursor-pointer hover:bg-blue-500 hover:bg-opacity-30 transition">
+          ✏️ Update Data
+        </div>
+        <div class="px-4 py-2 rounded-xl text-blue-100 text-sm font-medium cursor-pointer hover:bg-blue-500 hover:bg-opacity-30 transition">
+          📜 Patient History
+        </div>
+      </nav>
+
+      <div class="bg-blue-900 bg-opacity-40 rounded-xl p-4 text-sm">
+        <div class="font-semibold mb-1">Abhijeet</div>
+        <div class="text-blue-200 mb-3">ID: 232323</div>
+        <button class="w-full text-center text-blue-200 hover:text-white transition text-xs font-medium">
+          → Logout
+        </button>
       </div>
-    </div>
+    </aside>
 
-    <!-- Right: Auth Card -->
-    <div class="w-full">
-      <div class="bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-blue-100 p-8 md:p-10">
+    <!-- Main Content -->
+    <main class="flex-1 p-8">
+      <div class="mb-6">
+        <h1 class="text-3xl font-bold text-slate-900">Patient History</h1>
+        <p class="text-sm text-slate-500 mt-1">Timeline view of all your medical records and reports</p>
+      </div>
 
-        <!-- Header -->
-        <div class="text-center mb-8">
-          <div
-            class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 text-white shadow-lg mb-4">
-            <svg class="w-9 h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M6 20v-1a4 4 0 014-4h4a4 4 0 014 4v1" />
-            </svg>
-          </div>
-          <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900">Patient Portal</h2>
-          <p class="text-sm text-slate-600 mt-2">
-            Sign in or create a new patient account to continue.
-          </p>
-        </div>
+      <div class="grid grid-cols-3 gap-8">
+        <!-- Timeline (Left) -->
+        <div class="col-span-1">
+          <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-8">
+            <h2 class="text-lg font-semibold text-slate-900 mb-6">Your Records</h2>
+            
+            <div class="relative pb-4">
+              <div class="timeline-line"></div>
 
-        <!-- Sign In Form -->
-        <div id="signInForm">
-          <form onsubmit="handleSignIn(event)" class="space-y-5">
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-2">Email address</label>
-              <div class="relative">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M16 12a4 4 0 10-8 0 4 4 0 008 0z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 14v7m-6-3h12" />
-                  </svg>
-                </span>
-                <input
-                  type="email"
-                  id="signInEmail"
-                  required
-                  class="w-full pl-10 pr-4 py-3 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/70 focus:border-transparent outline-none transition bg-slate-50/60 focus:bg-white"
-                  placeholder="you@example.com"
-                />
+              <!-- Timeline Item 1 (Latest - Selected by default) -->
+              <div class="mb-6">
+                <div class="timeline-dot active" id="dot-1"></div>
+                <div class="timeline-card active cursor-pointer" id="card-1" onclick="selectRecord(1)">
+                  <div class="timeline-card-date">23 Dec 2025</div>
+                  <div class="timeline-card-time">2 hours ago</div>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-2">Password</label>
-              <div class="relative">
-                <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M12 11c1.657 0 3-1.343 3-3V6a3 3 0 10-6 0v2c0 1.657 1.343 3 3 3z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M5 11h14v8a2 2 0 01-2 2H7a2 2 0 01-2-2v-8z" />
-                  </svg>
-                </span>
-                <input
-                  type="password"
-                  id="signInPassword"
-                  required
-                  class="w-full pl-10 pr-4 py-3 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/70 focus:border-transparent outline-none transition bg-slate-50/60 focus:bg-white"
-                  placeholder="••••••••"
-                />
+              <!-- Timeline Item 2 -->
+              <div class="mb-6">
+                <div class="timeline-dot" id="dot-2"></div>
+                <div class="timeline-card" id="card-2" onclick="selectRecord(2)">
+                  <div class="timeline-card-date">20 Dec 2025</div>
+                  <div class="timeline-card-time">5 days ago</div>
+                </div>
               </div>
-            </div>
 
-            <div id="signInError"
-              class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-lg text-xs">
-            </div>
+              <!-- Timeline Item 3 -->
+              <div class="mb-6">
+                <div class="timeline-dot" id="dot-3"></div>
+                <div class="timeline-card" id="card-3" onclick="selectRecord(3)">
+                  <div class="timeline-card-date">15 Dec 2025</div>
+                  <div class="timeline-card-time">10 days ago</div>
+                </div>
+              </div>
 
-            <button
-              type="submit"
-              class="w-full bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition duration-300 flex items-center justify-center gap-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-              Sign In
-            </button>
-          </form>
+              <!-- Timeline Item 4 -->
+              <div class="mb-6">
+                <div class="timeline-dot" id="dot-4"></div>
+                <div class="timeline-card" id="card-4" onclick="selectRecord(4)">
+                  <div class="timeline-card-date">10 Dec 2025</div>
+                  <div class="timeline-card-time">15 days ago</div>
+                </div>
+              </div>
 
-          <div class="mt-6 text-center text-xs text-slate-600">
-            <p>
-              Don't have an account?
-              <button
-                onclick="showSignUpForm()"
-                class="text-blue-600 hover:text-blue-700 font-semibold"
-              >
-                Create one
-              </button>
-            </p>
-          </div>
-        </div>
-
-        <!-- Sign Up Form -->
-        <div id="signUpForm" class="hidden">
-          <form onsubmit="handleSignUp(event)" class="space-y-4">
-            <div class="grid md:grid-cols-2 gap-4">
+              <!-- Timeline Item 5 -->
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-2">Full name</label>
-                <input
-                  type="text"
-                  id="signUpName"
-                  required
-                  class="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/70 focus:border-transparent outline-none transition bg-slate-50/60 focus:bg-white"
-                  placeholder="John Doe"
-                />
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-2">Phone number</label>
-                <input
-                  type="tel"
-                  id="signUpPhone"
-                  required
-                  class="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/70 focus:border-transparent outline-none transition bg-slate-50/60 focus:bg-white"
-                  placeholder="+91 98765 43210"
-                />
+                <div class="timeline-dot" id="dot-5"></div>
+                <div class="timeline-card" id="card-5" onclick="selectRecord(5)">
+                  <div class="timeline-card-date">02 Dec 2025</div>
+                  <div class="timeline-card-time">23 days ago</div>
+                </div>
               </div>
             </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-2">Email address</label>
-              <input
-                type="email"
-                id="signUpEmail"
-                required
-                class="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/70 focus:border-transparent outline-none transition bg-slate-50/60 focus:bg-white"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-2">Password</label>
-              <input
-                type="password"
-                id="signUpPassword"
-                required
-                class="w-full px-4 py-3 text-sm rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500/70 focus:border-transparent outline-none transition bg-slate-50/60 focus:bg-white"
-                placeholder="Create a strong password"
-              />
-            </div>
-
-            <button
-              type="submit"
-              class="w-full bg-linear-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition duration-300 flex items-center justify-center gap-2"
-            >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 4v16m8-8H4" />
-              </svg>
-              Create Account
-            </button>
-          </form>
-
-          <div class="mt-6 text-center text-xs text-slate-600">
-            <p>
-              Already registered?
-              <button
-                onclick="showSignInForm()"
-                class="text-blue-600 hover:text-blue-700 font-semibold"
-              >
-                Sign in instead
-              </button>
-            </p>
           </div>
         </div>
 
-        <!-- Verification Form -->
-        <div id="verificationForm" class="hidden">
-          <div class="text-center mb-4">
-            <div
-              class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-linear-to-br from-emerald-500 to-teal-500 text-white shadow-lg mb-3">
-              <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M16 12l-4 4-4-4m8-4l-4 4-4-4" />
-              </svg>
+        <!-- Medical Report Details (Right) -->
+        <div class="col-span-2">
+          <!-- Medical Report Header -->
+          <div id="report-container">
+            <div class="detail-card">
+              <div class="detail-header">
+                <div class="flex items-center justify-between mb-2">
+                  <h2 class="text-2xl font-bold">Medical Report</h2>
+                  <span class="status-badge status-completed" id="status-badge">Completed</span>
+                </div>
+                <p class="text-blue-100 text-sm" id="report-date">23 Dec 2025 • 2:30 PM</p>
+              </div>
+
+              <!-- Patient Personal Data -->
+              <div class="detail-section">
+                <div class="section-title">Patient Personal Data</div>
+                <div class="info-grid" id="personal-data">
+                  <div class="info-item">
+                    <div class="info-label">Age</div>
+                    <div class="info-value">23 years</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Weight</div>
+                    <div class="info-value">62 kg</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Height</div>
+                    <div class="info-value">165 cm</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">BMI</div>
+                    <div class="info-value">22.8</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Cycle Length</div>
+                    <div class="info-value">32 days</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Last Period</div>
+                    <div class="info-value">10 Dec 2025</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sensor Data (Vitals) -->
+              <div class="detail-section">
+                <div class="section-title">Sensor Data (Vitals)</div>
+                <div class="info-grid" id="sensor-data">
+                  <div class="info-item">
+                    <div class="info-label">Heart Rate</div>
+                    <div class="info-value">76 bpm</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">SpO2</div>
+                    <div class="info-value">98%</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Blood Pressure</div>
+                    <div class="info-value">110/70 mmHg</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Temperature</div>
+                    <div class="info-value">98.4°F</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Blood Sugar</div>
+                    <div class="info-value">92 mg/dL</div>
+                  </div>
+                  <div class="info-item">
+                    <div class="info-label">Respiratory Rate</div>
+                    <div class="info-value">16/min</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Doctor's Analysis -->
+              <div class="detail-section">
+                <div class="section-title">Doctor's Analysis</div>
+                <div class="bg-indigo-50 border border-indigo-200 rounded-lg p-4 mb-3">
+                  <p class="text-sm text-indigo-900 leading-relaxed">
+                    <strong>Diagnosis:</strong> PCOS with mild insulin resistance. Menstrual cycle remains irregular. Recommend continued medication and lifestyle modifications including diet and exercise.
+                  </p>
+                </div>
+                <div class="notes-section">
+                  <strong>Clinical Notes:</strong><br/>
+                  Patient reports mild cramps and mood swings. No severe symptoms noted. Continue current treatment plan. Follow-up appointment scheduled for 7 January 2026.
+                </div>
+              </div>
             </div>
-            <h3 class="text-lg font-semibold text-slate-900">Verify your email</h3>
-            <p class="text-xs text-slate-600 mt-1">
-              Enter the 6-digit code sent to your email address.
-            </p>
           </div>
-
-          <form onsubmit="handleVerification(event)" class="space-y-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-2 text-center">Verification code</label>
-              <input
-                type="text"
-                id="verificationCode"
-                maxlength="6"
-                required
-                class="w-full px-4 py-3 text-xl tracking-[0.5em] text-center rounded-2xl border border-emerald-300 focus:ring-2 focus:ring-emerald-500/70 focus:border-transparent outline-none transition bg-emerald-50/60"
-                placeholder="000000"
-              />
-            </div>
-
-            <button
-              type="submit"
-              class="w-full bg-linear-to-br from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white text-sm font-semibold py-3 rounded-xl shadow-lg hover:shadow-xl transition duration-300"
-            >
-              Verify & Continue
-            </button>
-          </form>
-
-          <div class="mt-4 text-center text-xs">
-            <button
-              onclick="resendCode()"
-              class="text-blue-600 hover:text-blue-700 font-semibold"
-            >
-              Resend code
-            </button>
-          </div>
-        </div>
-
-        <!-- Success Message -->
-        <div id="successMessage" class="hidden text-center py-6">
-          <div
-            class="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-linear-to from-emerald-500 to-teal-500 text-white shadow-lg mb-3">
-            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h3 class="text-lg font-semibold text-slate-900 mb-1">Account verified</h3>
-          <p class="text-xs text-slate-600 mb-2">
-            Your email has been verified successfully.
-          </p>
-          <p class="text-xs text-slate-500">
-            Redirecting you back to login...
-          </p>
         </div>
       </div>
-
-      <!-- Small security note -->
-      <div class="mt-4 text-center text-[11px] text-slate-500">
-        <span class="inline-flex items-center gap-1">
-          <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 20 20">
-            <path fill-rule="evenodd"
-              d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
-              clip-rule="evenodd" />
-          </svg>
-          Data encrypted and stored securely on the server.
-        </span>
-      </div>
-    </div>
+    </main>
   </div>
 
   <script>
-    function showSignUpForm() {
-      document.getElementById('signInForm').classList.add('hidden');
-      document.getElementById('signUpForm').classList.remove('hidden');
-      document.getElementById('verificationForm').classList.add('hidden');
-      document.getElementById('successMessage').classList.add('hidden');
-    }
-
-    function showSignInForm() {
-      document.getElementById('signUpForm').classList.add('hidden');
-      document.getElementById('verificationForm').classList.add('hidden');
-      document.getElementById('successMessage').classList.add('hidden');
-      document.getElementById('signInForm').classList.remove('hidden');
-    }
-
-    function showVerificationForm() {
-      document.getElementById('signUpForm').classList.add('hidden');
-      document.getElementById('verificationForm').classList.remove('hidden');
-    }
-
-    function showSuccessMessage() {
-      document.getElementById('verificationForm').classList.add('hidden');
-      document.getElementById('successMessage').classList.remove('hidden');
-    }
-
-    function handleSignIn(event) {
-      event.preventDefault();
-      const email = document.getElementById('signInEmail').value;
-      const password = document.getElementById('signInPassword').value;
-      const accountExists = localStorage.getItem('patient_' + email);
-
-      if (!accountExists) {
-        const errorDiv = document.getElementById('signInError');
-        errorDiv.textContent = 'No account found with this email. Please sign up first.';
-        errorDiv.classList.remove('hidden');
-
-        setTimeout(() => {
-          errorDiv.classList.add('hidden');
-          showSignUpForm();
-          document.getElementById('signUpEmail').value = email;
-        }, 2000);
-      } else {
-        alert('Login successful! Welcome back.');
-        // window.location.href = 'patient-dashboard.html';
+    const recordsData = {
+      1: {
+        date: "23 Dec 2025 • 2:30 PM",
+        status: "Completed",
+        statusClass: "status-completed",
+        personal: {
+          age: "23 years",
+          weight: "62 kg",
+          height: "165 cm",
+          bmi: "22.8",
+          cycleLength: "32 days",
+          lastPeriod: "10 Dec 2025"
+        },
+        vitals: {
+          heartRate: "76 bpm",
+          spo2: "98%",
+          bp: "110/70 mmHg",
+          temp: "98.4°F",
+          sugar: "92 mg/dL",
+          respRate: "16/min"
+        },
+        diagnosis: "PCOS with mild insulin resistance. Menstrual cycle remains irregular. Recommend continued medication and lifestyle modifications.",
+        notes: "Patient reports mild cramps and mood swings. No severe symptoms noted. Continue current treatment plan."
+      },
+      2: {
+        date: "20 Dec 2025 • 10:15 AM",
+        status: "Reviewed",
+        statusClass: "status-reviewed",
+        personal: {
+          age: "23 years",
+          weight: "61.8 kg",
+          height: "165 cm",
+          bmi: "22.7",
+          cycleLength: "32 days",
+          lastPeriod: "10 Dec 2025"
+        },
+        vitals: {
+          heartRate: "74 bpm",
+          spo2: "98%",
+          bp: "108/68 mmHg",
+          temp: "98.3°F",
+          sugar: "90 mg/dL",
+          respRate: "15/min"
+        },
+        diagnosis: "PCOS management ongoing. Blood pressure and glucose levels stable.",
+        notes: "Patient doing well with medication. Advised to continue exercise routine. Minor hormone fluctuations noted."
+      },
+      3: {
+        date: "15 Dec 2025 • 3:45 PM",
+        status: "Completed",
+        statusClass: "status-completed",
+        personal: {
+          age: "23 years",
+          weight: "61.5 kg",
+          height: "165 cm",
+          bmi: "22.6",
+          cycleLength: "31 days",
+          lastPeriod: "05 Dec 2025"
+        },
+        vitals: {
+          heartRate: "75 bpm",
+          spo2: "99%",
+          bp: "109/69 mmHg",
+          temp: "98.5°F",
+          sugar: "88 mg/dL",
+          respRate: "16/min"
+        },
+        diagnosis: "Routine PCOS follow-up. Ultrasound shows typical polycystic ovaries. Hormonal levels improving.",
+        notes: "Patient reports better energy levels. Dietary changes showing positive impact. Continue with current regimen."
+      },
+      4: {
+        date: "10 Dec 2025 • 11:30 AM",
+        status: "Pending",
+        statusClass: "status-pending",
+        personal: {
+          age: "23 years",
+          weight: "62 kg",
+          height: "165 cm",
+          bmi: "22.8",
+          cycleLength: "30 days",
+          lastPeriod: "05 Dec 2025"
+        },
+        vitals: {
+          heartRate: "78 bpm",
+          spo2: "97%",
+          bp: "112/71 mmHg",
+          temp: "98.6°F",
+          sugar: "95 mg/dL",
+          respRate: "17/min"
+        },
+        diagnosis: "Initial PCOS assessment and medication review.",
+        notes: "Lab tests ordered. Patient to maintain food and symptom diary. Follow-up after lab results."
+      },
+      5: {
+        date: "02 Dec 2025 • 4:00 PM",
+        status: "Reviewed",
+        statusClass: "status-reviewed",
+        personal: {
+          age: "23 years",
+          weight: "62.3 kg",
+          height: "165 cm",
+          bmi: "22.9",
+          cycleLength: "35 days",
+          lastPeriod: "27 Nov 2025"
+        },
+        vitals: {
+          heartRate: "77 bpm",
+          spo2: "98%",
+          bp: "111/70 mmHg",
+          temp: "98.2°F",
+          sugar: "96 mg/dL",
+          respRate: "16/min"
+        },
+        diagnosis: "PCOS diagnosis confirmed. Multiple cysts observed on ultrasound.",
+        notes: "Started hormone therapy. Patient educated on lifestyle modifications and diet recommendations."
       }
+    };
+
+    function selectRecord(id) {
+      // Remove active class from all cards and dots
+      document.querySelectorAll('.timeline-card').forEach(card => card.classList.remove('active'));
+      document.querySelectorAll('.timeline-dot').forEach(dot => dot.classList.remove('active'));
+
+      // Add active class to selected card and dot
+      document.getElementById(`card-${id}`).classList.add('active');
+      document.getElementById(`dot-${id}`).classList.add('active');
+
+      // Update report content
+      const data = recordsData[id];
+      
+      document.getElementById('report-date').textContent = data.date;
+      const badge = document.getElementById('status-badge');
+      badge.textContent = data.status;
+      badge.className = `status-badge ${data.statusClass}`;
+
+      // Update Personal Data
+      let personalHTML = '';
+      Object.entries(data.personal).forEach(([key, value]) => {
+        const labels = {
+          age: 'Age',
+          weight: 'Weight',
+          height: 'Height',
+          bmi: 'BMI',
+          cycleLength: 'Cycle Length',
+          lastPeriod: 'Last Period'
+        };
+        personalHTML += `
+          <div class="info-item">
+            <div class="info-label">${labels[key]}</div>
+            <div class="info-value">${value}</div>
+          </div>
+        `;
+      });
+      document.getElementById('personal-data').innerHTML = personalHTML;
+
+      // Update Sensor Data
+      let vitalHTML = '';
+      Object.entries(data.vitals).forEach(([key, value]) => {
+        const labels = {
+          heartRate: 'Heart Rate',
+          spo2: 'SpO2',
+          bp: 'Blood Pressure',
+          temp: 'Temperature',
+          sugar: 'Blood Sugar',
+          respRate: 'Respiratory Rate'
+        };
+        vitalHTML += `
+          <div class="info-item">
+            <div class="info-label">${labels[key]}</div>
+            <div class="info-value">${value}</div>
+          </div>
+        `;
+      });
+      document.getElementById('sensor-data').innerHTML = vitalHTML;
+
+      // Update Doctor's Analysis
+      document.querySelector('.bg-indigo-50').innerHTML = `
+        <p class="text-sm text-indigo-900 leading-relaxed">
+          <strong>Diagnosis:</strong> ${data.diagnosis}
+        </p>
+      `;
+      document.querySelector('.notes-section').innerHTML = `
+        <strong>Clinical Notes:</strong><br/>
+        ${data.notes}
+      `;
     }
 
-    function handleSignUp(event) {
-      event.preventDefault();
-      const name = document.getElementById('signUpName').value;
-      const phone = document.getElementById('signUpPhone').value;
-      const email = document.getElementById('signUpEmail').value;
-      const password = document.getElementById('signUpPassword').value;
-
-      const userData = { name, phone, email, password };
-      localStorage.setItem('patient_' + email, JSON.stringify(userData));
-
-      const verificationCode = Math.floor(100000 + Math.random() * 900000);
-      localStorage.setItem('verification_' + email, verificationCode);
-
-      console.log('Verification code sent to email:', verificationCode);
-      alert(`Verification code sent to ${email}! (For demo: ${verificationCode})`);
-
-      showVerificationForm();
-    }
-
-    function handleVerification(event) {
-      event.preventDefault();
-      const code = document.getElementById('verificationCode').value;
-      const email = document.getElementById('signUpEmail').value;
-      const storedCode = localStorage.getItem('verification_' + email);
-
-      if (code === storedCode) {
-        showSuccessMessage();
-        setTimeout(() => {
-          showSignInForm();
-          document.getElementById('signInEmail').value = email;
-          document.getElementById('verificationCode').value = '';
-        }, 2000);
-      } else {
-        alert('Invalid verification code. Please try again.');
-      }
-    }
-
-    function resendCode() {
-      const email = document.getElementById('signUpEmail').value;
-      if (!email) {
-        alert('Please enter your email in the sign up form first.');
-        return;
-      }
-      const verificationCode = Math.floor(100000 + Math.random() * 900000);
-      localStorage.setItem('verification_' + email, verificationCode);
-      console.log('New verification code:', verificationCode);
-      alert(`New verification code sent! (For demo: ${verificationCode})`);
-    }
+    // Initialize with first record selected
+    selectRecord(1);
   </script>
 </body>
 </html>

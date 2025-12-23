@@ -12,7 +12,7 @@ export const authService = {
     console.log(`Token received`)
     // 3. Save to Session Storage
     if (token) {
-      localStorage.setItem('token', sessionId);
+      localStorage.setItem('token', token);
     }
     
     return response.data;

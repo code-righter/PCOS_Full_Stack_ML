@@ -62,12 +62,16 @@ app.get('/getUsers', async (req, res) => {
     }
 })
 
-// Mounting Routes
+// Patient's Routes
 app.use('/api/v1/auth/patient', authRouterPatient);
 app.use('/api/v1/patient', patientRouter);
+
+// Doctor's Routes
 app.use('/api/v1/auth/doctor', authRouterDoctor);
 app.use('/api/v1/doctor', doctorRouter);
 
+// Hardware routes
+app.use('/api/v1/hardware', patientRouter);
 // --- 3. SERVER START ---
 
 app.listen(PORT, () => {

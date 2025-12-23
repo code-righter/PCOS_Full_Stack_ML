@@ -90,6 +90,19 @@ const DashboardLayout = () => {
                 <span className="ml-3">Update Data</span>
               </NavLink>
             </li>
+            <li>
+              <NavLink
+                to="/dashboard/history" // Correct Path
+                className={({ isActive }) =>
+                  `flex items-center p-3 text-white rounded-lg transition group ${
+                    isActive ? 'bg-white/30 shadow-lg' : 'hover:bg-white/20'
+                  }`
+                }
+              >
+                <Edit className="w-5 h-5" />
+                <span className="ml-3">History</span>
+              </NavLink>
+            </li>
           </ul>
 
           {/* Bottom User Section */}

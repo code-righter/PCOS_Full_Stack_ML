@@ -15,5 +15,18 @@ export const patientService = {
         console.log(payload)
         const response = await api.post('/patient/personalInfo', payload);
         return response.data;
-    } 
+    } ,
+
+    getPendingRequests : async()=>{
+        const response = await api.get('/patient/getPendingRequests');
+        console.log(response);
+        return response.data;
+    },
+
+    getHistory: async () => {
+        // Endpoint: GET /api/v1/patient/history
+        const response = await api.get('/patient/history');
+        console.log(response.data)
+        return response.data;
+    }
 }

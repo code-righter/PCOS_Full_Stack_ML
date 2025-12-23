@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Shield, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 const DoctorSignIn = () => {
+  const navigate = useNavigate();
   const {login} = useAuth();
   const [formData, setFormData] = useState({
     email: '',
@@ -31,7 +33,7 @@ const DoctorSignIn = () => {
 
     try {
       await login (formData.email, formData.password);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       setError('Invalid email or password. Please try again.');
       console.error('Login error:', err);

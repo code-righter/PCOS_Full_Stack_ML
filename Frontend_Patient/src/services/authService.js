@@ -33,7 +33,9 @@ export const authService = {
     return response.data;
   },
 
-  logout: () => {
+  logout: async() => {
+    const response = await api.post('/auth/patient/sign-out');
+    console.log(response.data);
     sessionStorage.removeItem('sessionId');
     // Optional: Call backend logout endpoint here
   }
