@@ -6,6 +6,7 @@ import Test from './pages/dashboard/Test';
 import UpdateInfo from './pages/dashboard/UpdateInfo';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
+import PatientHistory from './pages/dashboard/PatientHistory'
 
 // Optional: Protected Route Wrapper
 import { useAuth } from './contexts/AuthContext';
@@ -26,17 +27,17 @@ function App() {
 
       {/* Protected Dashboard Routes */}
       <Route path="/dashboard" element={
-        <ProtectedRoute>
-          <PatientProvider>
-            <DashboardLayout /> {/* Layout renders here once */}
-          </PatientProvider>
-        </ProtectedRoute>
+          <ProtectedRoute>
+            <PatientProvider>
+              <DashboardLayout /> {/* Layout renders here once */}
+            </PatientProvider>
+          </ProtectedRoute>
       }>
         {/* Child routes render inside the <Outlet /> of DashboardLayout */}
         <Route index element={<Home />} /> 
         <Route path="test" element={<Test />} />
         <Route path="update-info" element={<UpdateInfo />} />
-        <Route path="history" element={<History />} />
+        <Route path="history" element={<PatientHistory />} />
       </Route>
 
       {/* Redirect root to login */}

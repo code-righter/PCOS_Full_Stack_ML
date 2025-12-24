@@ -13,7 +13,7 @@ export const patientService = {
     //posts new updated data 
     setPersonalInfo : async(payload) =>{
         console.log(payload)
-        const response = await api.post('/patient/personalInfo', payload);
+        const response = await api.post('/patient/updateData', payload);
         return response.data;
     } ,
 

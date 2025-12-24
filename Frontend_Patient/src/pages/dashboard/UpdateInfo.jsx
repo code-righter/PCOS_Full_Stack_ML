@@ -98,6 +98,7 @@ const UpdateInfo = () => {
     try {
       // Data is already in correct types
       const success = await submitPatientData(formData);
+      console.log(success)
       if (success) {
         alert('Health records updated successfully!');
       }

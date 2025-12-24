@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'; // <--- CHANGED imports
-import { Menu, X, Bell, Settings, Heart, Home, ClipboardCheck, Edit, LogOut } from 'lucide-react';
+import { Menu, X, Bell, Settings, Heart, Home, ClipboardCheck, Edit, LogOut, CalendarClock } from 'lucide-react';
 import { usePatient } from '../contexts/PatientContext';
 import { useAuth } from '../contexts/AuthContext'; // Import Auth to handle logout
 
@@ -99,7 +99,7 @@ const DashboardLayout = () => {
                   }`
                 }
               >
-                <Edit className="w-5 h-5" />
+                <CalendarClock className="w-5 h-5" />
                 <span className="ml-3">History</span>
               </NavLink>
             </li>

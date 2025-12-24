@@ -6,9 +6,8 @@ const patientRouter = Router()
 
 patientRouter.get('/personalInfo', verifySession, getPersonalData);// get personal data update
 patientRouter.post('/updateData', verifySession, setPersonalData);// set personal data update
-patientRouter.post('/history', verifySession, getPatientTimeline);  // patient history
+patientRouter.get('/history', verifySession, getPatientTimeline);  // patient history
 patientRouter.get('/getPendingRequests', verifySession, getPendingRequests);  // patient history
-
 
 // Test from frontend 
 patientRouter.get('/test/generateCode', verifySession, generateCode);  // Generate Code

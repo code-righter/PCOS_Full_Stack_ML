@@ -75,15 +75,16 @@ export const setPersonalData = async (req, res) => {
 
 export const getPatientTimeline = async (req, res) => {
   try {
-    const doctorEmail = req.doctor.email;
-    const { patientEmail } = req.params;
-
+    
+    const doctorEmail = "abhijeetkolhe@gmail.com";
+    const patientEmail  = req.userEmail;
+    
     if (!patientEmail) {
       return res.status(400).json({
         error: "Patient email is required",
       });
     }
-
+    
     // 1️⃣ Fetch patient lifestyle & health info (ONE TIME)
     const patientInfo = await prisma.patientPersonalInfo.findUnique({
       where: { email: patientEmail },
