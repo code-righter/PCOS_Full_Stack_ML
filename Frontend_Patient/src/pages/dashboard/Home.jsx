@@ -128,134 +128,124 @@ const Home = () => {
   const firstName = patientData?.data?.name?.split(' ')[0];
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      
-      <div className="grid lg:grid-cols-3 gap-8">
+    <div className="space-y-6">
+
+      {/* TOP SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* --- 1. WELCOME CARD --- */}
-        <div className="lg:col-span-2 bg-white rounded-3xl p-8 shadow-sm border border-slate-100 flex flex-col justify-center min-h-62.5">
+        {/* Welcome Card */}
+        <div className="lg:col-span-2 bg-white border border-slate-300 rounded-lg p-6">
           {!firstName ? (
-            // Loading State: Skeleton
-            <div className="space-y-4 animate-pulse">
-              <div className="h-8 bg-slate-200 rounded-lg w-1/2"></div>
-              <div className="h-4 bg-slate-200 rounded w-3/4"></div>
-              <div className="h-4 bg-slate-200 rounded w-2/3"></div>
+            <div className="space-y-3 animate-pulse">
+              <div className="h-6 bg-slate-200 rounded w-1/3" />
+              <div className="h-4 bg-slate-200 rounded w-2/3" />
             </div>
           ) : (
-            // Loaded State
-            <div>
-              <h1 className="text-4xl font-bold text-slate-900 mb-3">
+            <>
+              <h1 className="text-xl font-semibold text-slate-900">
                 Welcome back, {firstName}
               </h1>
-              <p className="text-lg text-slate-500 leading-relaxed">
-                Your health dashboard is ready. You can track your recent tests and view requests below.
+              <p className="mt-1 text-sm text-slate-500">
+                Track your recent tests and review doctor requests below.
               </p>
-            </div>
+            </>
           )}
         </div>
 
-        {/* --- 2. CLEAN CALENDAR --- */}
-        <div className="bg-purple-50/30 rounded-3xl p-6 shadow-sm border border-purple-100">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="font-bold text-lg text-slate-800">Calendar</h3>
-            <div className="flex gap-2 bg-white rounded-full p-1 shadow-xs border border-purple-100">
-              <button onClick={prevMonth} className="p-1.5 hover:bg-slate-50 rounded-full transition text-slate-500">
-                <ChevronLeft className="w-4 h-4" />
+        {/* Calendar */}
+        <div className="bg-white border border-slate-200 rounded-lg p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold text-slate-700">
+              Calendar
+            </h3>
+
+            <div className="flex items-center gap-1">
+              <button onClick={prevMonth} className="p-1 rounded hover:bg-slate-100">
+                <ChevronLeft size={14} />
               </button>
-              <span className="text-sm font-bold text-slate-700 w-24 text-center flex items-center justify-center">
+              <span className="text-xs font-medium text-slate-600 w-20 text-center">
                 {monthNames[currentDate.getMonth()].slice(0,3)} {currentDate.getFullYear()}
               </span>
-              <button onClick={nextMonth} className="p-1.5 hover:bg-slate-50 rounded-full transition text-slate-500">
-                <ChevronRight className="w-4 h-4" />
+              <button onClick={nextMonth} className="p-1 rounded hover:bg-slate-100">
+                <ChevronRight size={14} />
               </button>
             </div>
           </div>
 
-          <div className="grid grid-cols-7 text-center text-xs font-bold text-slate-400 mb-4 uppercase tracking-widest">
+          <div className="grid grid-cols-7 text-center text-[11px] font-medium text-slate-400 mb-2">
             <div>Su</div><div>Mo</div><div>Tu</div><div>We</div><div>Th</div><div>Fr</div><div>Sa</div>
           </div>
 
-          <div className="grid grid-cols-7 gap-y-2 justify-items-center">
+          <div className="grid grid-cols-7 gap-y-1 justify-items-center">
             {renderCalendarDays()}
           </div>
         </div>
       </div>
 
-      {/* --- 3. REQUEST TABLE --- */}
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/30">
-          <h3 className="font-bold text-xl text-slate-800">Previous Doctor Requests</h3>
-        </div>
+      {/* REQUEST TABLE */}
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden">
         
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-xs uppercase font-bold text-slate-500 tracking-wider">
+        <div className="px-6 py-4 border-b border-slate-200">
+          <h2 className="text-sm font-semibold text-slate-700">
+            Previous Doctor Requests
+          </h2>
+        </div>
+
+        <div className="overflow-x-auto text-center">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 text-xs font-medium text-slate-500 text-center">
               <tr>
-                <th className="px-6 py-4 w-24">Sr No</th>
-                <th className="px-6 py-4">Day – Date</th>
-                <th className="px-6 py-4">Submitted</th>
-                <th className="px-6 py-4">Status</th>
+                <th className="px-6 py-3 ">Sr No</th>
+                <th className="px-6 py-3">Day – Date</th>
+                <th className="px-6 py-3">Submitted</th>
+                <th className="px-6 py-3">Status</th>
+                <th className="px-6 py-3 text-right"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+
+            <tbody className="divide-y divide-slate-100">
               {loadingDashboard ? (
-                 // Loading Skeletons
-                 [1, 2, 3].map(i => (
-                   <tr key={i} className="animate-pulse">
-                     <td className="px-6 py-5"><div className="h-4 bg-slate-100 rounded w-8"></div></td>
-                     <td className="px-6 py-5"><div className="h-4 bg-slate-100 rounded w-32"></div></td>
-                     <td className="px-6 py-5"><div className="h-4 bg-slate-100 rounded w-24"></div></td>
-                     <td className="px-6 py-5"><div className="h-4 bg-slate-100 rounded w-16"></div></td>
-                     <td className="px-6 py-5"></td>
-                   </tr>
-                 ))
-              ) : requests.length > 0 ? (
+                [1,2,3].map(i => (
+                  <tr key={i} className="animate-pulse">
+                    <td className="px-6 py-4"><div className="h-4 w-6 bg-slate-200 rounded"/></td>
+                    <td className="px-6 py-4"><div className="h-4 w-32 bg-slate-200 rounded"/></td>
+                    <td className="px-6 py-4"><div className="h-4 w-24 bg-slate-200 rounded"/></td>
+                    <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-200 rounded"/></td>
+                    <td className="px-6 py-4"></td>
+                  </tr>
+                ))
+              ) : requests.length ? (
                 requests.map((req, index) => (
-                  <tr key={req.id || index} className="hover:bg-blue-50/30 transition duration-150">
-                    {/* Sr No is Index + 1 */}
-                    <td className="px-6 py-5 font-semibold text-slate-500">
-                      {index + 1}
-                    </td>
-                    
-                    {/* Day - Date */}
-                    <td className="px-6 py-5 font-medium text-slate-900">
+                  <tr key={req.id || index} className="hover:bg-slate-50">
+                    <td className="px-6 py-4 text-slate-500">{index + 1}</td>
+                    <td className="px-6 py-4 text-slate-800 font-medium">
                       {formatDate(req.createdAt)}
                     </td>
-                    
-                    {/* Submitted Time Ago */}
-                    <td className="px-6 py-5 flex items-center gap-2 text-slate-500">
-                      <Clock className="w-3.5 h-3.5" />
+                    <td className="px-6 py-4 text-slate-500 flex items-center gap-1 text-center">
+                      <Clock size={12} />
                       {timeAgo(req.createdAt)}
                     </td>
-                    
-                    {/* Status Badge */}
-                    <td className="px-6 py-5">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase ${
-                        req.status === 'PENDING' 
-                          ? 'bg-amber-50 text-amber-600 border border-amber-100' 
-                          : 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                    <td className="px-6 py-4">
+                      <span className={`px-2 py-1 text-[11px] font-medium rounded-full ${
+                        req.status === 'PENDING'
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-emerald-100 text-emerald-700'
                       }`}>
                         {req.status}
                       </span>
                     </td>
-                    
-                    {/* Action */}
-                    <td className="px-6 py-5 text-right">
-                      <button className="text-blue-600 hover:text-blue-700 text-sm font-semibold hover:underline">
+                    <td className="px-6 py-4 text-right">
+                      <button className="text-indigo-600 hover:underline text-sm">
                         View details
                       </button>
                     </td>
                   </tr>
                 ))
               ) : (
-                // Empty State
                 <tr>
-                  <td colSpan="5" className="p-12 text-center text-slate-500">
-                    <div className="flex flex-col items-center justify-center opacity-60">
-                       <FileText className="w-12 h-12 text-slate-300 mb-3" />
-                       <p className="text-lg font-medium">No requests found</p>
-                       <p className="text-sm">Your history is currently empty.</p>
-                    </div>
+                  <td colSpan="5" className="p-10 text-center text-slate-500">
+                    <FileText className="mx-auto mb-2 text-slate-300" size={32} />
+                    No requests found
                   </td>
                 </tr>
               )}
