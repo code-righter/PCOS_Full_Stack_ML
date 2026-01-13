@@ -183,11 +183,11 @@ export const getPatientTimeline = async (req, res) => {
       });
     }
 
-    // 2️⃣ Fetch timeline (latest → oldest)
+    // 2️⃣ Fetch timeline with doctor info
     const timeline = await prisma.dataForDocAnalysis.findMany({
       where: {
         patientId: patientEmail,
-        doctorId: doctorEmail,
+        doctorId: doctorEmail, // access control
       },
       orderBy: {
         createdAt: "desc",
@@ -195,7 +195,13 @@ export const getPatientTimeline = async (req, res) => {
       select: {
         id: true,
         status: true,
-        createdAt: true,
+        createdAt: true, // 📅 analysis submission date
+
+        doctor: {
+          select: {
+            name: true, // 👨‍⚕️ doctor name
+          },
+        },
 
         sensorData: {
           select: {
@@ -222,16 +228,30 @@ export const getPatientTimeline = async (req, res) => {
             finalVerdict: true,
             prescription: true,
             notes: true,
-            approvedAt: true,
+            approvedAt: true, // 📅 doctor approval date
           },
         },
       },
     });
 
+    // 3️⃣ Shape response cleanly for frontend
+    const formattedTimeline = timeline.map((item) => ({
+      analysisId: item.id,
+      status: item.status,
+
+      analysisDate: item.createdAt,
+      doctorName: item.doctor?.name || null,
+      doctorApprovedAt: item.doctorReport?.approvedAt || null,
+
+      sensorData: item.sensorData,
+      mlResult: item.mlResult,
+      doctorReport: item.doctorReport,
+    }));
+
     return res.status(200).json({
       patient: patientInfo,
-      totalRecords: timeline.length,
-      timeline,
+      totalRecords: formattedTimeline.length,
+      timeline: formattedTimeline,
     });
 
   } catch (error) {

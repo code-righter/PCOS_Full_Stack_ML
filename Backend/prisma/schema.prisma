@@ -149,8 +149,8 @@ model DoctorReport {
   doctorId     String
 
   finalVerdict String
-  prescription Json?
-  notes        String?
+  prescription String
+  notes        String
   approvedAt   DateTime @default(now())
 
   analysis DataForDocAnalysis @relation(fields: [analysisId], references: [id])

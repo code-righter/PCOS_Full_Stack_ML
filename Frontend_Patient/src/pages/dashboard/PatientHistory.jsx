@@ -13,6 +13,7 @@ import {
   Stethoscope,
   AlertCircle
 } from "lucide-react";
+import jsPDF from "jspdf"
 import { patientService } from "../../services/patientService";
 
 /* --------------------------------
@@ -81,9 +82,28 @@ import { patientService } from "../../services/patientService";
 
   doc.setFont("helvetica", "normal");
   const verdict =
-    report.doctorReport?.diagnosis || "Doctor review pending.";
+    report.doctorReport || "Doctor review pending.";
 
   doc.text(verdict, 25, y, { maxWidth: 160 });
+  y += 20;
+  // ===== AI model Analysis =====
+  doc.setFont("helvetica", "bold");
+  doc.text("ML Model Analysis", 20, y);
+  y += 6;
+
+  doc.setFont("helvetica", "normal");
+  const mlPrediction =
+    report.mlResult?.prediction || "ML Analysis Pending";
+  const mlConfidence =
+    report.mlResult?.confidenceScore || "Confidence score not available";
+  const modelVersion =
+    report.mlResult?.modelVersion || "Failed to load model version";
+
+  doc.text(mlPrediction, 25, y, { maxWidth: 160 });
+  y += 6;
+  doc.text(mlConfidence, 25, y, { maxWidth: 160 });
+  y += 6;
+  doc.text(modelVersion, 25, y, { maxWidth: 160 });
   y += 20;
 
   // ===== PRESCRIPTION =====
