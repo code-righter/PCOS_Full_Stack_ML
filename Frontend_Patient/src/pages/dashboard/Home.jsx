@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight, FileText, Clock } from 'lucide-react';
-import { usePatient } from '../../contexts/AuthContext'; 
+import { usePatient } from '../../contexts/PatientContext'; 
 import { patientService } from '../../services/patientService';
 
 const Home = () => {

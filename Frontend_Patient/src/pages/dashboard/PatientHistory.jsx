@@ -18,7 +18,6 @@ import { patientService } from "../../services/patientService";
 /* --------------------------------
    LEFT TIMELINE ITEM
 --------------------------------- */
-const TimelineItem = ({ item, active, onClick }) => {
 
   const generatePDF = ({ patient, report }) => {
   const doc = new jsPDF();
@@ -114,6 +113,10 @@ const TimelineItem = ({ item, active, onClick }) => {
   // ===== SAVE =====
   doc.save(`PCOS_Report_${patient?.name || "Patient"}.pdf`);
 };
+
+
+const TimelineItem = ({ item, active, onClick }) => {
+
 
   const date = new Date(item.createdAt);
   return (
