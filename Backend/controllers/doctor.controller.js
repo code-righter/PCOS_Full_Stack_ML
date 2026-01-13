@@ -24,8 +24,10 @@ export const getDocDashboardMetrics = async (req, res) => {
     });
 
     return res.status(200).json({
-      pendingRequestsCount,
-      totalPatientsCount: totalPatients.length,
+      data : {
+        pendingRequestsCount,
+        totalPatientsCount: totalPatients.length, 
+      }
     });
 
   } catch (error) {

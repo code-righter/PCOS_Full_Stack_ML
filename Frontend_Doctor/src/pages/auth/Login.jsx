@@ -1,11 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // 1. Import useEffect
 import { Shield, Mail, Lock, ArrowRight, AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const DoctorSignIn = () => {
   const navigate = useNavigate();
-  const {login} = useAuth();
+  // 2. We need 'doctor' state to know when login is successful
+  const { login, doctor } = useAuth(); 
+  
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -16,30 +18,41 @@ const DoctorSignIn = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // 3. NEW: Automatically redirect when doctor state updates to authenticated
+  useEffect(() => {
+    if (doctor && doctor.isAuthenticated) {
+      setIsLoading(false);
+      navigate('/'); 
+
+    }
+  }, [doctor, navigate]);
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error when user starts typing
     if (error) setError('');
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    
     setError('');
 
     try {
-      await login (formData.email, formData.password);
-      navigate('/');
+      await login(formData.email, formData.password);
+      // 4. REMOVED: navigate('/') 
+      // We let the useEffect handle the navigation now.
     } catch (err) {
       setError('Invalid email or password. Please try again.');
       console.error('Login error:', err);
-    } finally {
-      setIsLoading(false);
-    }
+      setIsLoading(false); // Stop loading only on error
+    } 
+    // Note: We don't set isLoading(false) on success because 
+    // we want the button to keep spinning until the page changes.
   };
 
   const togglePasswordVisibility = () => {
@@ -47,13 +60,13 @@ const DoctorSignIn = () => {
   };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-teal-50 via-emerald-50 to-cyan-100 flex items-center justify-center p-4 relative">
+    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-emerald-50 to-cyan-100 flex items-center justify-center p-4 relative">
 
       <div className="max-w-md w-full">
         <div className="bg-white rounded-2xl shadow-2xl p-8 border-t-4 border-teal-600">
           {/* Header Section */}
           <div className="text-center mb-8">
-            <div className="inline-block bg-linear-to-br from-teal-100 to-emerald-100 p-4 rounded-full mb-4 shadow-lg">
+            <div className="inline-block bg-gradient-to-br from-teal-100 to-emerald-100 p-4 rounded-full mb-4 shadow-lg">
               <Shield className="w-14 h-14 text-teal-700" />
             </div>
             <h2 className="text-3xl font-bold text-gray-800 mb-2">Doctor Portal</h2>
@@ -67,6 +80,7 @@ const DoctorSignIn = () => {
           </div>
 
           {/* Error Message */}
+
           {error && (
             <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
@@ -135,13 +149,11 @@ const DoctorSignIn = () => {
                 </div>
               </div>
 
-             
-
               {/* Submit Button */}
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full bg-linear-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:from-gray-400 disabled:to-gray-500 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition duration-300 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none flex items-center justify-center gap-2"
               >
                 {isLoading ? (
                   <>
@@ -163,7 +175,7 @@ const DoctorSignIn = () => {
 
           {/* Additional Info */}
           <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="bg-linear-to-r from-teal-50 to-emerald-50 rounded-lg p-4 border border-teal-100">
+            <div className="bg-gradient-to-r from-teal-50 to-emerald-50 rounded-lg p-4 border border-teal-100">
               <div className="flex gap-3">
                 <AlertCircle className="w-5 h-5 text-teal-600 shrink-0 mt-0.5" />
                 <div>

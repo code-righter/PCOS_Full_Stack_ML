@@ -6,7 +6,6 @@ export const authService = {
     // 1. API Call
     const response = await api.post('/auth/doctor/sign-in', credentials);
     console.log(`Login route reached authService`)
-    // 2. Extract Data (Based on your screenshot)
     const { token } = response.data;
     
     console.log(`Token received`)

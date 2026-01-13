@@ -7,8 +7,11 @@ import {
   LogOut,
   Stethoscope 
 } from 'lucide-react';
+import { useAuth}  from '../context/AuthContext';
 
 const DashboardLayout = () => {
+
+  const {doctor}  = useAuth();
   
   // Navigation Items based on your request
   const navItems = [
@@ -21,7 +24,7 @@ const DashboardLayout = () => {
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
       
       {/* --- Sidebar --- */}
-      <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transition-colors duration-300">
+      <aside className="w-64  bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transition-colors duration-300">
         
         {/* Logo Section */}
         <div className="p-6 border-b border-slate-100 dark:border-slate-700">
@@ -64,7 +67,7 @@ const DashboardLayout = () => {
               DS
             </div>
             <div className="flex-1">
-              <h4 className="text-sm font-bold text-slate-800 dark:text-white">Dr. Smith</h4>
+              <h4 className="text-sm font-bold text-slate-800 dark:text-white">{doctor?.name || "..."}</h4>
               <p className="text-xs text-slate-500 dark:text-slate-400">Gynecologist</p>
             </div>
             <button className="text-slate-400 hover:text-red-500 transition-colors">

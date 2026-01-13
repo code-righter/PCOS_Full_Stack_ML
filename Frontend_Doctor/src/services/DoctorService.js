@@ -2,13 +2,13 @@ import api from './api'
 
 export const doctorService = {
     getDocDashboardMetric : async () =>{
-        const response = await api.get('/dashboardMetrics')
+        const response = await api.get('doctor/dashboardMetrics')
         console.log(response.data);
         return response.data;
     },
 
     getPendingPatientsData : async () =>{
-        const respone = await api.get('/pendingPatients')
+        const respone = await api.get('doctor/pendingPatients')
         console.log(respone.data)
         return respone.data
     },
@@ -22,7 +22,7 @@ export const doctorService = {
     },
 
     getPatientInfo : async()=>{
-        const response = await api.get('/patientInfo');
+        const response = await api.get('doctor/patientInfo');
         console.log(response.data);
         return response.data
     }

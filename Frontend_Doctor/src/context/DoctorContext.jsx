@@ -1,10 +1,14 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
-import {doctorService} from '../services/DoctorService';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+// FIX 1: Use default import (remove curly braces) if your service uses 'export default'
+import {doctorService} from '../services/DoctorService'; 
+import { useAuth } from './AuthContext'; // We need auth to know when to fetch
 
 const DoctorContext = createContext();
 
 export const DoctorProvider = ({ children }) => {
-  // --- State for the 4 Data Points ---
+  const { doctor } = useAuth(); // Access the logged-in user state
+
+  // --- State for the Data ---
   const [dashboardMetrics, setDashboardMetrics] = useState(null);
   const [pendingPatients, setPendingPatients] = useState([]);
   const [allPatients, setAllPatients] = useState([]);
@@ -16,37 +20,30 @@ export const DoctorProvider = ({ children }) => {
 
   // --- Actions (Fetching Data) ---
 
-  // 1. Fetch Dashboard Metrics (Cards)
-  const fetchDashboardMetrics = useCallback(async () => {
+  const refreshDashboard = useCallback(async () => {
+    // Safety check: Don't fetch if not logged in
+    if (!doctor || !doctor.isAuthenticated) return;
+
     setLoading(true);
     try {
-      const response = await doctorService.getDocDashboardMetrics();
-      setDashboardMetrics(response.data); 
+      // Fetch Dashboard Cards & Pending Table in parallel
+      const [metricsRes, pendingRes] = await Promise.all([
+        doctorService.getDocDashboardMetric(),
+        doctorService.getPendingPatientsData()
+      ]);
+
+      setDashboardMetrics(metricsRes.data);
+      setPendingPatients(pendingRes.data);
       setError(null);
     } catch (err) {
-      console.error("Error fetching metrics:", err);
-      setError(err.response?.data?.message || "Failed to load dashboard metrics");
+      console.error("Error refreshing dashboard:", err);
+      // Optional: Check if error is 401 (Unauthorized) and logout?
+      setError("Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [doctor]); // dependency on 'doctor' ensures we have the latest token
 
-  // 2. Fetch Pending Patients (For the Pending Requests Page/Table)
-  const fetchPendingPatients = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await doctorService.getPendingPatientsData();
-      setPendingPatients(response.data);
-      setError(null);
-    } catch (err) {
-      console.error("Error fetching pending patients:", err);
-      setError("Failed to load pending requests");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // 3. Fetch All Patients (For the All Patients Page)
   const fetchAllPatients = useCallback(async () => {
     setLoading(true);
     try {
@@ -61,37 +58,35 @@ export const DoctorProvider = ({ children }) => {
     }
   }, []);
 
-  // 4. Fetch Timeline (Specific Patient History)
   const fetchPatientTimeline = useCallback(async (patientId) => {
-    // We don't set global loading here to avoid blocking the whole UI if just one component needs this
     try {
       const response = await doctorService.getPatientTimeline(patientId);
       setPatientTimeline(response.data);
-      return response.data; // Return data for local handling if needed
+      return response.data;
     } catch (err) {
       console.error("Error fetching timeline:", err);
-      // Optional: Don't set global error for specific component failures
-      throw err; 
+      throw err;
     }
   }, []);
 
+  // --- NEW: Automatic Fetch on Mount/Login ---
+  useEffect(() => {
+    if (doctor?.isAuthenticated) {
+      refreshDashboard();
+    }
+  }, [doctor, refreshDashboard]);
+
   // --- Context Value ---
   const value = {
-    // State
     dashboardMetrics,
     pendingPatients,
     allPatients,
     patientTimeline,
     loading,
     error,
-    
-    // Actions
-    fetchDashboardMetrics,
-    fetchPendingPatients,
+    refreshDashboard,
     fetchAllPatients,
     fetchPatientTimeline,
-    
-    // Clear specific states if needed (good for unmounting)
     clearTimeline: () => setPatientTimeline(null),
     clearError: () => setError(null)
   };
@@ -103,7 +98,6 @@ export const DoctorProvider = ({ children }) => {
   );
 };
 
-// --- Custom Hook for easy access ---
 export const useDoctor = () => {
   const context = useContext(DoctorContext);
   if (!context) {
