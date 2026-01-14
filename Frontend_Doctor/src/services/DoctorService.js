@@ -29,7 +29,7 @@ export const doctorService = {
 
     getPatientInfoByEmail: async (email) =>{
         const response = api.get(`/doctor/patientInfo/${email}`);
-        console.log(response.data);
-        return response.data;
+        console.log(response);
+        return response;
     } 
 }

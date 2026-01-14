@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDoctor } from '../../context/DoctorContext';
 import {doctorService} from '../../services/DoctorService'; 
@@ -8,18 +8,15 @@ import {
 } from 'lucide-react';
 
 const ReviewPatient = () => {
-  const { id } = useParams();
+  const { id } = useParams(); // This is the analysisId (e.g. "9218...")
   const navigate = useNavigate();
-  
-  // Get global context data
   const { pendingPatients } = useDoctor();
 
   // --- Local State ---
-  const [fullPatientData, setFullPatientData] = useState(null);
-  const [timeline, setTimeline] = useState([]);
-  const [selectedPastReport, setSelectedPastReport] = useState(null);
+  const [fullResponse, setFullResponse] = useState(null); // Stores { patient, timeline }
   const [loading, setLoading] = useState(true);
-  const [requestDetails, setRequestDetails] = useState(null); // Local copy of the basic request info
+  const [selectedAnalysis, setSelectedAnalysis] = useState(null); // The specific record we are viewing
+  const [isHistoryView, setIsHistoryView] = useState(false); // Toggle between "Current" and "Past" views
 
   // --- Form State ---
   const [report, setReport] = useState({
@@ -28,211 +25,261 @@ const ReviewPatient = () => {
     status: 'Followup',
   });
 
-  // --- EFFECT: Handle Data Fetching Robustly ---
+  // --- 1. Find Email & Fetch Data ---
   useEffect(() => {
-    const initData = async () => {
-      // 1. Try to find the patient in the global list
-      // We check pendingPatients.data safely
-      const foundRequest = pendingPatients?.data?.find(p => p.id === id);
+    const fetchData = async () => {
+      // Find the email from the Pending List using the analysis ID
+      const pendingRequest = pendingPatients?.find(p => p.id === id);
+      console.log(`Pending Request Check`, pendingPatients)
+      // Fallback: If page reloaded and context is empty, we might need another way or just wait
+      // For now, we assume context is populated or we fail gracefully
+      const email = pendingRequest?.patient?.email;
+      console.log(`Email Check`, email)
 
-      if (foundRequest) {
-        setRequestDetails(foundRequest); // Save basic info (Name, Age) for the UI
-        const email = foundRequest.patient?.email;
-
-        if (email) {
-          try {
-            setLoading(true);
-            // 2. Call the API with the email
-            const response = await doctorService.getPatientInfoByEmail(email);
-            
-            // 3. Update State
-            setFullPatientData(response.data);
-            setTimeline(response.data.history || []);
-          } catch (err) {
-            console.error("Failed to fetch detailed patient info:", err);
-          } finally {
-            setLoading(false);
-          }
+      if (email) {
+        try {
+          setLoading(true);
+          const response = await doctorService.getPatientInfoByEmail(email);
+          setFullResponse(response);
+    
+          const current = response.data.timeline?.find(t => t.analysisId === id);
+          setSelectedAnalysis(current || response.data.timeline?.[0]);
+        } catch (err) {
+          console.error("Fetch error:", err);
+        } finally {
+          setLoading(false);
         }
-      } else {
-        // If pendingPatients is loaded but ID is not found, or list is empty
-        if (pendingPatients?.data?.length > 0) {
-            setLoading(false); // Stop loading if we know it's not in the list
-        }
+      } else if (pendingPatients?.length > 0) {
+        // Only stop loading if we are sure the ID doesn't exist in the loaded list
+        setLoading(false);
       }
     };
 
-    initData();
+    fetchData();
+  }, [id, pendingPatients]);
 
-  }, [id, pendingPatients]); // <--- CRITICAL CHANGE: Re-run when Context updates
+
+  // --- Helper to switch views when clicking timeline ---
+  const handleTimelineClick = (analysis) => {
+    setSelectedAnalysis(analysis);
+    // If the clicked ID is different from the URL ID, it's history (Read Only)
+    setIsHistoryView(analysis.analysisId !== id);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Submitting Report:", { requestId: id, ...report });
-    alert("Report Sent Successfully!");
+    console.log("Submitting:", { analysisId: id, ...report });
+    // await doctorService.submitReport(id, report);
+    alert("Report Submitted Successfully!");
     navigate('/pending');
   };
 
-  // --- Safe Access Helper ---
-  // If we are loading, show spinner. 
-  // If not loading and no data found, show error.
-  if (loading && !fullPatientData) {
-    return <div className="p-20 text-center text-slate-500 animate-pulse">Loading Patient Data...</div>;
-  }
+  // --- Loading / Error States ---
+  if (loading) return <div className="p-20 text-center animate-pulse">Loading Patient Data...</div>;
+  if (!fullResponse || !selectedAnalysis) return <div className="p-20 text-center">Patient data not found.</div>;
 
-  if (!requestDetails && !loading) {
-    return (
-        <div className="p-20 text-center">
-            <h2 className="text-xl font-bold text-slate-700">Patient Request Not Found</h2>
-            <button onClick={() => navigate('/pending')} className="mt-4 text-blue-600 hover:underline">
-                Go back to list
-            </button>
-        </div>
-    );
-  }
+  const { patient, timeline } = fullResponse;
+  const { sensorData, mlResult } = selectedAnalysis;
 
-  // Use the data we found (either from full fetch or fallback to list data)
-  const patientName = requestDetails?.patient?.name || "Unknown Patient";
-  const patientAge = requestDetails?.patient?.age || "N/A";
-  const displayEmail = requestDetails?.patient?.email || "";
+  // Calculate BMI safely
+  const bmi = (sensorData?.weight && sensorData?.height) 
+    ? (sensorData.weight / ((sensorData.height/100) ** 2)).toFixed(1) 
+    : 'N/A';
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-20 relative">
+    <div className="max-w-6xl p-4 mx-auto space-y-6 pb-20 relative">
       
       {/* Header */}
       <div className="flex items-center gap-4">
-        <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full dark:hover:bg-slate-800 transition-colors">
+        <button onClick={() => navigate(-1)} className="p-2 hover:bg-slate-100 rounded-full dark:hover:bg-slate-800">
           <ArrowLeft className="w-6 h-6 text-slate-600 dark:text-slate-300" />
         </button>
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{patientName}</h1>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{patient?.data?.name || 'Patient'}</h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
-            {displayEmail} • Age: {patientAge}
+             Age: {patient?.age || 'N/A'} • Cycle: {patient?.data?.cycleType || 'Unknown'} ({patient?.cycleLength} days)
           </p>
         </div>
       </div>
 
       {/* Timeline Bar */}
-      {timeline.length > 0 && (
+      {timeline?.length > 0 && (
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 p-4">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Calendar size={14} /> Previous Consultations
+                <Calendar size={14} /> Consultation History
             </h3>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                {timeline.map((visit, index) => (
-                    <button
-                        key={index}
-                        onClick={() => setSelectedPastReport(visit)}
-                        className="flex flex-col items-center min-w-[100px] p-3 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-blue-50 hover:border-blue-200 dark:hover:bg-slate-700 transition-all group"
-                    >
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200 group-hover:text-blue-600">
-                            {new Date(visit.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                        </span>
-                        <span className="text-xs text-slate-400 mt-1">{new Date(visit.date).getFullYear()}</span>
-                    </button>
-                ))}
+                {timeline.map((visit) => {
+                    const isSelected = selectedAnalysis.analysisId === visit.analysisId;
+                    const dateObj = new Date(visit.analysisDate);
+                    return (
+                        <button
+                            key={visit.analysisId}
+                            onClick={() => handleTimelineClick(visit)}
+                            className={`flex flex-col items-center min-w-[100px] p-3 rounded-lg border transition-all ${
+                                isSelected 
+                                ? 'bg-blue-50 border-blue-500 text-blue-700 dark:bg-blue-900/30 dark:border-blue-400 dark:text-blue-300' 
+                                : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                            }`}
+                        >
+                            <span className="text-sm font-bold">
+                                {dateObj.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </span>
+                            <span className="text-xs opacity-70">{dateObj.getFullYear()}</span>
+                        </button>
+                    )
+                })}
             </div>
         </div>
       )}
 
-      {/* Main Grid */}
+      {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
-        {/* Left Col: Patient Data & ML */}
+        {/* Left Col: Medical Data */}
         <div className="lg:col-span-2 space-y-6">
-           {/* 1. Health Data */}
-           <HealthDataCard data={fullPatientData?.latestHealthData || {}} />
-
-           {/* 2. ML Analysis */}
-           <MLAnalysisCard prediction={fullPatientData?.latestPrediction || {}} />
            
-           {/* 3. Prescription Input */}
-           <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
-              <FileText className="w-5 h-5 text-teal-600" /> New Prescription
-            </h3>
-            <textarea
-              className="w-full h-40 p-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-              placeholder="Enter medication and advice..."
-              value={report.prescription}
-              onChange={(e) => setReport({...report, prescription: e.target.value})}
-            />
-          </div>
+           {/* Card 1: Health Data (Combines Profile + Sensor) */}
+           <HealthDataCard 
+              profile={patient} 
+              sensor={sensorData} 
+              bmi={bmi} 
+              readOnly={isHistoryView} 
+           />
+
+           {/* Card 2: ML Analysis */}
+           <MLAnalysisCard 
+              result={mlResult} 
+              readOnly={isHistoryView} 
+           />
+           
+           {/* Card 3: Prescription (Hidden if viewing history without report) */}
+           {!isHistoryView ? (
+             <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
+                <FileText className="w-5 h-5 text-teal-600" /> New Prescription
+              </h3>
+              <textarea
+                className="w-full h-40 p-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                placeholder="Enter medication and advice..."
+                value={report.prescription}
+                onChange={(e) => setReport({...report, prescription: e.target.value})}
+              />
+            </div>
+           ) : (
+             <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
+                <h3 className="font-bold text-slate-700 dark:text-slate-300 mb-2">Past Prescription</h3>
+                <p className="text-slate-600 dark:text-slate-400 italic">
+                    {selectedAnalysis.doctorReport?.prescription || "No prescription recorded for this visit."}
+                </p>
+             </div>
+           )}
         </div>
 
-        {/* Right Col: Verdict & Submit */}
+        {/* Right Col: Verdict */}
         <div className="space-y-6">
-            {/* 4. Verdict */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
-                <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
-                <Stethoscope className="w-5 h-5 text-blue-600" /> Final Verdict
-                </h3>
-                <textarea
-                className="w-full h-48 p-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                placeholder="Doctor's diagnosis..."
-                value={report.verdict}
-                onChange={(e) => setReport({...report, verdict: e.target.value})}
-                />
-            </div>
+            {!isHistoryView ? (
+                <>
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
+                        <Stethoscope className="w-5 h-5 text-blue-600" /> Final Verdict
+                        </h3>
+                        <textarea
+                        className="w-full h-48 p-4 rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-700/50 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                        placeholder="Doctor's diagnosis..."
+                        value={report.verdict}
+                        onChange={(e) => setReport({...report, verdict: e.target.value})}
+                        />
+                    </div>
 
-            {/* 5. Status Enum */}
-            <StatusSelector currentStatus={report.status} setStatus={(s) => setReport({...report, status: s})} />
+                    <StatusSelector currentStatus={report.status} setStatus={(s) => setReport({...report, status: s})} />
 
-            <button 
-                onClick={handleSubmit}
-                className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
-            >
-                <Send size={20} /> Submit Report
-            </button>
+                    <button 
+                        onClick={handleSubmit}
+                        className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                        <Send size={20} /> Submit Report
+                    </button>
+                </>
+            ) : (
+                <div className="bg-yellow-50 dark:bg-yellow-900/10 p-6 rounded-2xl border border-yellow-200 dark:border-yellow-900/30">
+                    <h3 className="font-bold text-yellow-800 dark:text-yellow-400 mb-4 flex items-center gap-2">
+                        <Calendar size={18} /> Archived Report
+                    </h3>
+                    <div className="space-y-4">
+                        <div>
+                            <span className="text-xs font-bold text-yellow-700 uppercase">Verdict</span>
+                            <p className="text-slate-700 dark:text-slate-300 mt-1">
+                                {selectedAnalysis.doctorReport?.verdict || "No verdict found."}
+                            </p>
+                        </div>
+                        <div className="pt-4 border-t border-yellow-200 dark:border-yellow-900/30">
+                             <span className="text-xs font-bold text-yellow-700 uppercase">Status</span>
+                             <p className="text-slate-700 dark:text-slate-300 mt-1 font-semibold">
+                                {selectedAnalysis.status}
+                             </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
       </div>
-
-      {/* --- PAST REPORT MODAL --- */}
-      {selectedPastReport && (
-        <PastReportModal report={selectedPastReport} onClose={() => setSelectedPastReport(null)} />
-      )}
     </div>
   );
 };
 
-// --- Reusable Sub-Components (Paste these at the bottom of the file) ---
+// --- Sub-Components (Updated for new Data Structure) ---
 
-const HealthDataCard = ({ data, readOnly }) => (
-    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 ${readOnly ? 'bg-slate-50 dark:bg-slate-900/50' : ''}`}>
+const HealthDataCard = ({ profile, sensor, bmi, readOnly }) => (
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 ${readOnly ? 'opacity-90' : ''}`}>
         <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
-            <Activity className="w-5 h-5 text-blue-600" /> {readOnly ? 'Recorded Health Data' : 'Current Health Data'}
+            <Activity className="w-5 h-5 text-blue-600" /> Vital Statistics
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <InfoBlock label="Cycle Type" value={data.cycleType || 'Regular'} />
-            <InfoBlock label="BMI" value={data.bmi || 'N/A'} />
-            <InfoBlock label="Heart Rate" value={data.heartRate ? `${data.heartRate} BPM` : 'N/A'} />
-            <InfoBlock label="Sleep" value={data.sleepHours ? `${data.sleepHours} hrs` : 'N/A'} />
-            <InfoBlock label="Activity" value={data.activityLevel || 'N/A'} />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <InfoBlock label="Heart Rate" value={sensor?.heartRate ? `${sensor.heartRate} bpm` : '--'} />
+            <InfoBlock label="SpO2" value={sensor?.spo2 ? `${sensor.spo2}%` : '--'} />
+            <InfoBlock label="Temp" value={sensor?.temperature ? `${sensor.temperature}°C` : '--'} />
+            <InfoBlock label="BMI" value={bmi} />
+            <InfoBlock label="Weight" value={sensor?.weight ? `${sensor.weight} kg` : '--'} />
+            <InfoBlock label="Height" value={sensor?.height ? `${sensor.height} cm` : '--'} />
+            <InfoBlock label="Hip" value={profile?.hip ? `${profile.hip} in` : '--'} />
+            <InfoBlock label="Waist" value={profile?.waist ? `${profile.waist} in` : '--'} />
         </div>
     </div>
 );
 
-const MLAnalysisCard = ({ prediction, readOnly }) => (
-    <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 ${readOnly ? 'bg-slate-50 dark:bg-slate-900/50' : ''}`}>
-        <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
-            <Brain className="w-5 h-5 text-purple-600" /> {readOnly ? 'Recorded AI Analysis' : 'AI Analysis Result'}
-        </h3>
-        <div className="flex flex-col md:flex-row gap-4 items-center">
-             <div className={`px-4 py-3 w-full md:w-auto text-center rounded-lg font-bold flex items-center justify-center gap-2 border ${prediction.detected ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
-                {prediction.detected ? <AlertTriangle size={20}/> : <CheckCircle size={20}/>}
-                {prediction.detected ? 'PCOS DETECTED' : 'LOW RISK'}
-            </div>
-            <div className="text-sm text-slate-500">
-                Confidence: <span className="font-bold text-slate-900 dark:text-white">{prediction.confidence || 0}%</span>
-            </div>
-            {prediction.version && (
-                 <div className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded ml-auto">
-                    v{prediction.version}
+const MLAnalysisCard = ({ result, readOnly }) => {
+    // Handle case where ML hasn't run yet (null result)
+    if (!result) {
+        return (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6">
+                <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
+                    <Brain className="w-5 h-5 text-slate-400" /> AI Analysis
+                </h3>
+                <div className="p-4 bg-slate-50 dark:bg-slate-700/30 rounded-lg text-center text-slate-500">
+                    Analysis Pending or Not Available
                 </div>
-            )}
+            </div>
+        );
+    }
+
+    return (
+        <div className={`bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-6 ${readOnly ? 'opacity-90' : ''}`}>
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2 mb-4">
+                <Brain className="w-5 h-5 text-purple-600" /> AI Prediction
+            </h3>
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+                 <div className={`px-4 py-3 w-full md:w-auto text-center rounded-lg font-bold flex items-center justify-center gap-2 border ${result.detected ? 'bg-red-50 text-red-700 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}`}>
+                    {result.detected ? <AlertTriangle size={20}/> : <CheckCircle size={20}/>}
+                    {result.detected ? 'PCOS DETECTED' : 'LOW RISK'}
+                </div>
+                <div className="text-sm text-slate-500">
+                    Confidence: <span className="font-bold text-slate-900 dark:text-white">{result.confidence || 0}%</span>
+                </div>
+            </div>
         </div>
-    </div>
-);
+    );
+};
 
 const InfoBlock = ({ label, value }) => (
     <div className="bg-slate-50 dark:bg-slate-700/30 p-3 rounded-lg">
@@ -271,52 +318,5 @@ const StatusSelector = ({ currentStatus, setStatus }) => {
         </div>
     );
 };
-
-const PastReportModal = ({ report, onClose }) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200">
-            <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800 p-4 flex justify-between items-center z-10">
-                <div>
-                    <h2 className="text-xl font-bold text-slate-800 dark:text-white">Past Report</h2>
-                    <p className="text-sm text-slate-500">
-                        Date: {new Date(report.date).toLocaleDateString()}
-                    </p>
-                </div>
-                <button onClick={onClose} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-                    <X size={24} className="text-slate-500" />
-                </button>
-            </div>
-            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="col-span-full">
-                    <HealthDataCard data={report.healthData || {}} readOnly />
-                </div>
-                <div className="col-span-full">
-                        <MLAnalysisCard prediction={report.prediction || {}} readOnly />
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                        <Stethoscope size={16} /> Doctor's Verdict
-                    </h4>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                        {report.verdict || "No verdict recorded."}
-                    </p>
-                </div>
-                <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-100 dark:border-slate-700">
-                    <h4 className="font-bold text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                        <FileText size={16} /> Prescription
-                    </h4>
-                    <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">
-                        {report.prescription || "No prescription recorded."}
-                    </p>
-                </div>
-                <div className="col-span-full bg-yellow-50 dark:bg-yellow-900/10 p-4 rounded-xl border border-yellow-100 dark:border-yellow-900/30">
-                    <h4 className="font-bold text-yellow-800 dark:text-yellow-400 mb-1 flex items-center gap-2">
-                        <HeartPulse size={16} /> Clinical Status: {report.status}
-                    </h4>
-                </div>
-            </div>
-        </div>
-    </div>
-);
 
 export default ReviewPatient;
