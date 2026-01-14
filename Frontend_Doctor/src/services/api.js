@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   // Make sure this matches your backend URL exactly
-  baseURL: 'http://localhost:8080/api/v1', 
+  baseURL: 'https://pcosdetect.onrender.com/api/v1', 
 });
 
 // The Interceptor: This injects the token into every request

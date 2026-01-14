@@ -13,7 +13,8 @@ import ProtectedRoute from './components/ProtectedRoutes'
 import Login from './pages/auth/Login';
 import Overview from './pages/dashboard/Overview';
 import Patient from './pages/dashboard/Patient';
-import PendingPatients from './pages/dashboard/PendingPatients'
+import PendingRequests from './pages/dashboard/PendingRequests'
+import ReviewPatient from './pages/dashboard/ReviewPatient';
 
 
 function App() {
@@ -35,7 +36,13 @@ function App() {
               }
             >
               <Route index element={<Overview />} />
-              <Route path="pending" element={<PendingPatients />} />
+
+              <Route path="all-patients" element={<Patient />} />
+            
+              <Route path="pending" element={<PendingRequests />} />
+              
+              <Route path="review/:id" element={<ReviewPatient />} />
+              
               <Route path="all-patients" element={<Patient />} />
             </Route>
 

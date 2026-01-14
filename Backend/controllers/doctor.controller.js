@@ -147,7 +147,7 @@ export const getAllPatients = async (req, res) => {
 export const getPatientTimeline = async (req, res) => {
   try {
     const doctorEmail = req.doctor.email;
-    const { patientEmail } = req.params;
+    const {patientEmail } = req.params; 
 
     if (!patientEmail) {
       return res.status(400).json({
@@ -155,7 +155,6 @@ export const getPatientTimeline = async (req, res) => {
       });
     }
 
-    // 1️⃣ Fetch patient lifestyle & health info (ONE TIME)
     const patientInfo = await prisma.patientPersonalInfo.findUnique({
       where: { email: patientEmail },
       select: {
@@ -183,7 +182,6 @@ export const getPatientTimeline = async (req, res) => {
       });
     }
 
-    // 2️⃣ Fetch timeline with doctor info
     const timeline = await prisma.dataForDocAnalysis.findMany({
       where: {
         patientId: patientEmail,
@@ -261,3 +259,20 @@ export const getPatientTimeline = async (req, res) => {
     });
   }
 };
+
+
+export const getModelAnalysis = async (req, res)=>{
+  try{
+
+  }catch(err){
+
+  }
+} 
+
+export const submitDoctorsReport = async(req, res)=>{
+  try{
+
+  }catch(err){
+    
+  }
+}
