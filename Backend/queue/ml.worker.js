@@ -1,119 +1,119 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import { Worker } from "bullmq";
 import axios from "axios";
 import prisma from "../db/prisma.js";
 import { redisConnection } from "../queue/redis.js";
-import logger from "../utils/logger.js"; // Import logger
-import dotenv from "dotenv";
-dotenv.config();
 
-const worker = new Worker(
+console.log("🚀 ML Worker started and listening to ML_QUEUE");
+
+new Worker(
   "ML_QUEUE",
   async (job) => {
     const { analysisId } = job.data;
-    const resource = 'Worker/ML_Queue'; // Tag for this specific worker
-
-    // Context object for logs (includes Job ID for tracing)
-    const logContext = { resource, jobId: job.id, analysisId };
+    const resource = "ML/Worker";
 
     try {
-      logger.info(`Job received. Starting ML pipeline for Analysis ID: ${analysisId}`, logContext);
+      console.log(`📥 [${resource}] Job received for analysisId: ${analysisId}`);
 
-      // 1️⃣ Mark as processing
+      // 1️⃣ Mark analysis as ML_PROCESSING
       await prisma.dataForDocAnalysis.update({
         where: { id: analysisId },
         data: { status: "ML_PROCESSING" },
       });
 
-      // 2️⃣ Fetch analysis + sensor + patient
+      // 2️⃣ Fetch analysis + test data (SINGLE SOURCE OF TRUTH)
       const analysis = await prisma.dataForDocAnalysis.findUnique({
         where: { id: analysisId },
         include: {
-          sensorData: true,
-          patient: true,
+          testData: true,
         },
       });
 
-      if (!analysis || !analysis.patient || !analysis.sensorData) {
-        throw new Error("Missing required Patient or Sensor data for analysis");
+      if (!analysis || !analysis.testData) {
+        throw new Error("TestData not found for analysis");
       }
 
-      const { sensorData, patient } = analysis;
+      const t = analysis.testData;
 
-      // 3️⃣ Build ML payload
-      const heightMeters = sensorData.height / 100;
-      const bmi = Number(
-        (sensorData.weight / (heightMeters * heightMeters)).toFixed(2)
-      );
+      // 3️⃣ Compute BMI safely
+      const heightMeters = t.height ? t.height / 100 : null;
+      const bmi =
+        heightMeters && t.weight
+          ? Number((t.weight / (heightMeters * heightMeters)).toFixed(2))
+          : null;
 
+      // 4️⃣ Build ML payload (STRICT CONTRACT)
       const mlPayload = {
-        hair_growth: patient.hairGrowth ? 1 : 0,
-        skin_darkening: patient.skinDarkening ? 1 : 0,
-        weight_gain: patient.weightGain ? 1 : 0,
-        fast_food: patient.fastFood ? 1 : 0,
-        cycle_length: patient.cycleLength,
-        cycle_irregular: patient.cycleType === "IRREGULAR" ? 1 : 0,
+        hair_growth: t.hairGrowth ? 1 : 0,
+        skin_darkening: t.skinDarkening ? 1 : 0,
+        weight_gain: t.weightGain ? 1 : 0,
+        fast_food: t.fastFood ? 1 : 0,
+        cycle_length: t.cycleLength,
+        cycle_irregular: t.cycleType === "IRREGULAR" ? 1 : 0,
         bmi,
-        weight_kg: sensorData.weight,
-        hip_inch: patient.hip,
+        weight_kg: t.weight,
+        hip_inch: t.hip,
       };
 
-      logger.info('Payload constructed. Sending to ML Service...', logContext);
+      console.log(`📤 [${resource}] Sending payload to ML`, mlPayload);
 
-      // 4️⃣ Call ML service
+      // 5️⃣ Call FastAPI ML service
       const mlResponse = await axios.post(
         process.env.ML_SERVICE_URL,
         mlPayload,
-        { timeout: 8000 }
+        {
+          timeout: 8000,
+          headers: {
+            "x-api-key": process.env.ML_SERVICE_API_KEY,
+          },
+        }
       );
 
-      logger.info(`ML Service responded. Prediction: ${mlResponse.data.pcos_prediction}`, logContext);
+      const { pcos_prediction, confidence_score } = mlResponse.data;
 
-      // 5️⃣ Save ML result
+      if (pcos_prediction === undefined || confidence_score === undefined) {
+        throw new Error("Invalid ML response format");
+      }
+
+      // 6️⃣ Save ML result
       await prisma.mLResult.create({
         data: {
           analysisId,
-          prediction: mlResponse.data.pcos_prediction === 1 ? "PCOS" : "NO_PCOS",
-          confidenceScore: mlResponse.data.confidence_score,
-          modelVersion: "v1.1.2",
+          prediction: pcos_prediction === 1 ? "PCOS" : "NO_PCOS",
+          confidenceScore: confidence_score,
+          modelVersion: "v1.1.2", // default as decided
         },
       });
 
-      // 6️⃣ Mark processed
+      // 7️⃣ Mark analysis as ML_PROCESSED
       await prisma.dataForDocAnalysis.update({
         where: { id: analysisId },
         data: { status: "ML_PROCESSED" },
       });
 
-      logger.info('Job completed successfully. Database updated.', logContext);
+      console.log(
+        `✅ [${resource}] ML processing completed for analysisId: ${analysisId}`
+      );
 
     } catch (error) {
-      // 🚨 Error Handling
-      logger.error(`Job Failed: ${error.message}`, logContext);
+      console.error(
+        `❌ [ML/Worker] Error for analysisId ${analysisId}:`,
+        error.message
+      );
 
-      // Update DB status to FAILED so UI doesn't hang
-      try {
-        await prisma.dataForDocAnalysis.update({
-          where: { id: analysisId },
-          data: { status: "PENDING" },
-        });
-        logger.warn('Analysis status set to ML_FAILED', logContext);
-      } catch (dbError) {
-        logger.error(`Critical: Could not update status to ML_FAILED. ${dbError.message}`, logContext);
-      }
-      
-      throw error; // Throwing ensures BullMQ marks job as 'failed' in Redis
+      // 8️⃣ Mark analysis as ML_FAILED (important for visibility)
+      await prisma.dataForDocAnalysis.update({
+        where: { id: analysisId },
+        data: { status: "ML_FAILED" },
+      });
+
+      // Re-throw so BullMQ retry mechanism kicks in
+      throw error;
     }
   },
-  { connection: redisConnection }
+  {
+    connection: redisConnection,
+  }
 );
-
-// Optional: Global Event Listeners for the Worker
-worker.on('failed', (job, err) => {
-  logger.error(`Worker reported failure for Job ${job.id}: ${err.message}`, { resource: 'Worker/ML_Queue' });
-});
-
-worker.on('error', (err) => {
-  logger.error(`Redis connection error: ${err.message}`, { resource: 'Worker/ML_Queue' });
-});
-
-export default worker;

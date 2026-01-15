@@ -2,281 +2,254 @@ import React, { useState, useEffect } from "react";
 import {
   Calendar,
   Clock,
-  User,
-  FileText,
   HeartPulse,
   Thermometer,
   Activity,
   Wind,
   Brain,
-  Pill,
-  Stethoscope,
   AlertCircle
 } from "lucide-react";
-import jsPDF from "jspdf"
+import jsPDF from "jspdf";
 import { patientService } from "../../services/patientService";
 
-/* --------------------------------
-   LEFT TIMELINE ITEM
---------------------------------- */
-
-  const generatePDF = ({ patient, report }) => {
+/* ======================================================
+   PDF GENERATOR (UI-QUALITY RESTORED + DATA FIXED)
+====================================================== */
+const generatePDF = ({ patient, report }) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
-  const margin = 20;
-  const contentWidth = pageWidth - 2 * margin;
+  const margin = 15;
+  const contentWidth = pageWidth - margin * 2;
   let y = margin;
 
-  // ===== HELPER FUNCTIONS =====
-  const addSection = (title) => {
-    doc.setFontSize(12);
+  // ==================== HELPER FUNCTIONS ====================
+
+  const checkPageBreak = (neededSpace = 30) => {
+    if (y > pageHeight - neededSpace) {
+      doc.addPage();
+      y = margin;
+      addFooter();
+    }
+  };
+
+  const section = (title) => {
+    checkPageBreak(25);
     doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
     doc.setTextColor(25, 51, 102); // Dark blue
     doc.text(title, margin, y);
-    y += 1;
-    doc.setDrawColor(79, 129, 189); // Blue line
-    doc.setLineWidth(0.5);
+    y += 2;
+    
+    // Underline
+    doc.setDrawColor(79, 129, 189); // Light blue
+    doc.setLineWidth(0.8);
     doc.line(margin, y, pageWidth - margin, y);
-    y += 6;
+    y += 8;
   };
 
-  const addField = (label, value, isItalic = false) => {
+  const field = (label, value, bold = false) => {
     doc.setFontSize(10);
-    doc.setFont("helvetica", isItalic ? "italic" : "normal");
-    doc.setTextColor(0, 0, 0);
-    const fieldText = `${label}: `;
-    const valueText = value ?? "—";
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0);
     
-    doc.text(fieldText, margin + 5, y);
-    doc.setFont("helvetica", "bold");
-    doc.text(valueText, margin + 50, y);
+    const labelWidth = 55;
+    const wrappedLabel = doc.splitTextToSize(`${label}:`, labelWidth - 5);
+    doc.text(wrappedLabel, margin + 5, y);
+    
+    doc.setFont("helvetica", bold ? "bold" : "normal");
+    doc.setTextColor(40, 40, 40);
+    const displayValue = String(value ?? "—");
+    const wrappedValue = doc.splitTextToSize(displayValue, contentWidth - labelWidth - 10);
+    doc.text(wrappedValue, margin + labelWidth, y);
+    
     y += 6;
   };
 
-  const addWrappedText = (text, isTitle = false) => {
-    doc.setFontSize(isTitle ? 11 : 10);
-    doc.setFont("helvetica", isTitle ? "bold" : "normal");
-    doc.setTextColor(isTitle ? 0 : 40, isTitle ? 0 : 40, isTitle ? 0 : 40);
+  const twoColumnField = (label1, value1, label2, value2) => {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0);
     
-    const lines = doc.splitTextToSize(text, contentWidth - 10);
-    lines.forEach((line, index) => {
-      if (y > pageHeight - 20) {
-        doc.addPage();
-        y = margin;
-      }
-      doc.text(line, margin + 5, y);
-      y += isTitle ? 7 : 5;
-    });
+    const colWidth = (contentWidth - 5) / 2;
+    
+    // Column 1
+    doc.text(`${label1}:`, margin + 5, y);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40, 40, 40);
+    doc.text(String(value1 ?? "—"), margin + 35, y);
+    
+    // Column 2
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0);
+    doc.text(`${label2}:`, margin + colWidth + 10, y);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(40, 40, 40);
+    doc.text(String(value2 ?? "—"), margin + colWidth + 40, y);
+    y += 6;
   };
 
-  // ===== PAGE BREAK CHECK =====
-  const checkPageBreak = (neededSpace = 15) => {
-    if (y + neededSpace > pageHeight - margin) {
-      doc.addPage();
-      y = margin;
-    }
+  const addFooter = () => {
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.text(
+      `Generated on ${new Date().toLocaleDateString()} | PCOS Diagnostic Report`,
+      margin,
+      pageHeight - 10
+    );
   };
 
-  // ===== HEADER WITH LOGO AREA =====
-  doc.setFontSize(20);
+  const addHeader = () => {
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(25, 51, 102);
+    doc.text("PCOS DIAGNOSTIC REPORT", pageWidth / 2, y, { align: "center" });
+    y += 2;
+    doc.setDrawColor(79, 129, 189);
+    y += 8;
+  };
+
+  // ==================== DOCUMENT START ====================
+  
+  addHeader();
+
+  // ---------- PATIENT INFORMATION ----------
+  section("PATIENT INFORMATION");
+  twoColumnField("Name", patient?.name, "Age", patient?.age);
+  field("Date of Report", new Date().toLocaleDateString());
+  
+  const t = report.testData || {};
+  y += 2;
+
+  // ---------- CLINICAL PRESENTATION ----------
+  section("CLINICAL PRESENTATION");
+  twoColumnField(
+    "Menstrual Cycle Type",
+    t.cycleType || "Not specified",
+    "Cycle Length",
+    t.cycleLength ? `${t.cycleLength} days` : "Not specified"
+  );
+  twoColumnField(
+    "Excessive Hair Growth",
+    t.hairGrowth ? "Yes" : "No",
+    "Skin Darkening",
+    t.skinDarkening ? "Yes" : "No"
+  );
+  twoColumnField(
+    "Weight Gain",
+    t.weightGain ? "Yes" : "No",
+    "Fast Food Consumption",
+    t.fastFood ? "Yes" : "No"
+  );
+  y += 2;
+
+  // ---------- VITAL SIGNS ----------
+  section("VITAL SIGNS & ANTHROPOMETRIC MEASUREMENTS");
+  twoColumnField("Height", t.height ? `${t.height} cm` : "—", "Weight", t.weight ? `${t.weight} kg` : "—");
+  
+  const bmi = t.height && t.weight 
+    ? (t.weight / ((t.height / 100) ** 2)).toFixed(2)
+    : "—";
+  twoColumnField(
+    "BMI",
+    bmi !== "—" ? `${bmi} kg/m²` : "—",
+    "Heart Rate",
+    t.heartRate ? `${t.heartRate} bpm` : "—"
+  );
+  twoColumnField(
+    "Blood Oxygen (SpO₂)",
+    t.spo2 ? `${t.spo2}%` : "—",
+    "Temperature",
+    t.temperature ? `${t.temperature}°C` : "—"
+  );
+  y += 2;
+
+  // ---------- MACHINE LEARNING ANALYSIS ----------
+  checkPageBreak(35);
+  section("MACHINE LEARNING ANALYSIS");
+  
+  const prediction = report.mlResult?.prediction;
+  const confidenceScore = report.mlResult?.confidenceScore;
+  
+  // Prediction badge styling
+  doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(25, 51, 102);
-  doc.text("PCOS DIAGNOSTIC REPORT", pageWidth / 2, y, { align: "center" });
+  
+  const predictionText = prediction || "Pending";
+  const predictionColor = prediction === "PCOS Detected" 
+    ? [220, 53, 69] // Red
+    : prediction === "No PCOS"
+    ? [40, 167, 69]  // Green
+    : [253, 193, 7]; // Yellow for pending
+  
+  doc.setTextColor(...predictionColor);
+  doc.text(`Prediction: ${predictionText}`, margin + 5, y);
   y += 8;
-
-  doc.setFontSize(10);
+  
+  doc.setTextColor(0);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(100, 100, 100);
-  doc.text(`Report Generated: ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, y, { align: "center" });
-  y += 4;
-  doc.text(`Time: ${new Date().toLocaleTimeString('en-IN')}`, pageWidth / 2, y, { align: "center" });
-  y += 8;
+  if (confidenceScore !== undefined) {
+    field(
+      "Confidence Level",
+      `${(confidenceScore * 100).toFixed(2)}%`,
+      true
+    );
+  }
+  field("Model Version", report.mlResult?.modelVersion || "v1.0");
+  y += 2;
 
-  doc.setLineWidth(1);
-  doc.setDrawColor(79, 129, 189);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 8;
-
-  // ===== PATIENT DEMOGRAPHICS =====
-  addSection("PATIENT INFORMATION");
+  // ---------- DOCTOR ASSESSMENT ----------
+  section("PHYSICIAN ASSESSMENT & RECOMMENDATIONS");
   
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(0, 0, 0);
-  
-  // Two column layout for patient info
-  doc.text(`Name: ${patient?.name || "—"}`, margin + 5, y);
-  doc.text(`Age: ${patient?.age || "—"} years`, pageWidth / 2 + 10, y);
-  y += 6;
-  
-  doc.text(`Phone: ${patient?.phoneNumber || "—"}`, margin + 5, y);
-  doc.text(`Email: ${patient?.email || "—"}`, pageWidth / 2 + 10, y);
-  y += 6;
-  
-  doc.text(`Cycle Type: ${patient?.cycleType || "—"}`, margin + 5, y);
-  y += 10;
-
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 8;
-
-  // ===== VITAL SIGNS & SENSOR DATA =====
-  checkPageBreak(50);
-  addSection("VITAL SIGNS & SENSOR DATA");
-
-  const sensors = report.sensorData || {};
-  const vitalData = [
-    ["Height", `${sensors.height || "—"} cm`],
-    ["Weight", `${sensors.weight || "—"} kg`],
-    ["Heart Rate", `${sensors.heartRate || "—"} bpm`],
-    ["Blood Oxygen (SpO₂)", `${sensors.spo2 || "—"} %`],
-    ["Body Temperature", `${sensors.temperature || "—"} °C`],
-  ];
-
-  // Create a nice grid for vital signs
-  const vitalWidth = contentWidth / 2 - 5;
-  let vitalY = y;
-  let colIndex = 0;
-
-  vitalData.forEach(([label, value], index) => {
-    const xPos = margin + 5 + (colIndex * (vitalWidth + 10));
+  if (report.doctorReport) {
+    field("Clinical Diagnosis", report.doctorReport.diagnosis, true);
+    y += 4;
     
     doc.setFontSize(9);
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(79, 129, 189);
-    doc.text(label, xPos, vitalY);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(0);
+    doc.text("Prescribed Treatment Plan:", margin + 5, y);
+    y += 5;
     
-    doc.setFont("helvetica", "bold");
-    doc.setTextColor(0, 0, 0);
-    doc.setFontSize(11);
-    doc.text(value, xPos, vitalY + 6);
-    
-    colIndex++;
-    if (colIndex === 2) {
-      colIndex = 0;
-      vitalY += 15;
-    }
-  });
-
-  y = vitalY + 15;
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 8;
-
-  // ===== DOCTOR'S ASSESSMENT =====
-  checkPageBreak(50);
-  addSection("CLINICAL ASSESSMENT");
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(0, 0, 0);
-  
-  const doctorReportText = report.doctorReport || "Clinical assessment pending.";
-  const doctorLines = doc.splitTextToSize(doctorReportText, contentWidth - 10);
-  
-  doctorLines.forEach((line) => {
-    if (y > pageHeight - 30) {
-      doc.addPage();
-      y = margin;
-    }
-    doc.text(line, margin + 5, y);
-    y += 5;
-  });
-
-  y += 5;
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 8;
-
-  // ===== ML MODEL ANALYSIS =====
-  checkPageBreak(40);
-  addSection("MACHINE LEARNING ANALYSIS");
-
-  const mlPrediction = report.mlResult?.prediction || "ML analysis pending";
-  const modelVersion = report.mlResult?.modelVersion || "Model version unavailable";
-  const mlConfidence = report.mlResult?.confidence || null;
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(25, 51, 102);
-  doc.text("Prediction:", margin + 5, y);
-  
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(0, 0, 0);
-  const predictionLines = doc.splitTextToSize(mlPrediction, contentWidth - 20);
-  
-  predictionLines.forEach((line) => {
-    doc.text(line, margin + 25, y);
-    y += 5;
-  });
-
-  y += 3;
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(25, 51, 102);
-  doc.setFontSize(9);
-  doc.text("Model Details:", margin + 5, y);
-  y += 4;
-
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(0, 0, 0);
-  doc.setFontSize(9);
-  doc.text(`Version: ${modelVersion}`, margin + 10, y);
-  
-  if (mlConfidence) {
-    y += 5;
-    doc.text(`Confidence: ${mlConfidence}%`, margin + 10, y);
+    const prescriptionLines = doc.splitTextToSize(
+      report.doctorReport.prescription || "Not specified",
+      contentWidth - 10
+    );
+    doc.text(prescriptionLines, margin + 8, y);
+    y += prescriptionLines.length * 5 + 5;
+  } else {
+    doc.setFont("helvetica", "italic");
+    doc.setTextColor(150, 100, 100);
+    doc.text("⚠ Doctor review pending - Report incomplete", margin + 5, y);
+    y += 8;
   }
 
-  y += 10;
-  doc.setDrawColor(200, 200, 200);
-  doc.setLineWidth(0.3);
-  doc.line(margin, y, pageWidth - margin, y);
-  y += 8;
-
-  // ===== PRESCRIPTION & RECOMMENDATIONS =====
-  checkPageBreak(40);
-  addSection("PRESCRIPTION & RECOMMENDATIONS");
-
-  const prescriptionText = report.doctorReport?.prescription || "No prescription issued at this time.";
-  
-  doc.setFontSize(10);
+  // ---------- DISCLAIMER ----------
+  checkPageBreak(20);
+  section("IMPORTANT DISCLAIMER");
+  doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
-  doc.setTextColor(0, 0, 0);
+  doc.setTextColor(80, 80, 80);
   
-  const prescriptionLines = doc.splitTextToSize(prescriptionText, contentWidth - 10);
-  
-  prescriptionLines.forEach((line) => {
-    if (y > pageHeight - 20) {
-      doc.addPage();
-      y = margin;
-    }
-    doc.text(line, margin + 5, y);
-    y += 5;
-  });
+  const disclaimerText = doc.splitTextToSize(
+    "This report is generated for informational purposes and should not be considered as a substitute for professional medical advice, diagnosis, or treatment. Always consult with a qualified healthcare provider for medical decisions.",
+    contentWidth
+  );
+  doc.text(disclaimerText, margin + 5, y);
 
-  y += 10;
+  // ---------- FOOTER ----------
+  addFooter();
 
-  // ===== FOOTER =====
-  const footerY = pageHeight - 15;
-  doc.setFontSize(8);
-  doc.setFont("helvetica", "italic");
-  doc.setTextColor(150, 150, 150);
-  doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
-  doc.text("This report is generated by the PCOS Detection System and should be reviewed by a qualified healthcare professional.", pageWidth / 2, footerY, { align: "center" });
-
-  // ===== SAVE PDF =====
-  const fileName = `PCOS_Report_${patient?.name || "Patient"}_${new Date().getTime()}.pdf`;
+  // Save PDF
+  const fileName = `PCOS_Report_${patient?.name?.replace(/\s+/g, "_") || "Patient"}_${Date.now()}.pdf`;
   doc.save(fileName);
 };
 
+/* ======================================================
+   UI COMPONENTS (UNCHANGED)
+====================================================== */
 
 const TimelineItem = ({ item, active, onClick }) => {
-
-
   const date = new Date(item.createdAt);
   return (
     <button
@@ -297,9 +270,6 @@ const TimelineItem = ({ item, active, onClick }) => {
   );
 };
 
-/* --------------------------------
-   INFO ROW
---------------------------------- */
 const InfoRow = ({ label, value }) => (
   <div className="flex justify-between text-sm">
     <span className="text-slate-500">{label}</span>
@@ -309,9 +279,6 @@ const InfoRow = ({ label, value }) => (
   </div>
 );
 
-/* --------------------------------
-   VITAL CARD
---------------------------------- */
 const Vital = ({ icon: Icon, label, value, unit }) => (
   <div className="border border-slate-200 rounded-lg p-4">
     <div className="flex items-center gap-2 text-slate-500 text-xs mb-1">
@@ -325,9 +292,10 @@ const Vital = ({ icon: Icon, label, value, unit }) => (
   </div>
 );
 
-/* --------------------------------
-   MAIN COMPONENT
---------------------------------- */
+/* ======================================================
+   MAIN COMPONENT (LOGIC FIXED, UI SAME)
+====================================================== */
+
 const PatientHistory = () => {
   const [history, setHistory] = useState([]);
   const [patient, setPatient] = useState(null);
@@ -342,8 +310,8 @@ const PatientHistory = () => {
         setPatient(data.patient);
         setHistory(data.timeline || []);
         setSelected(data.timeline?.[0] || null);
-      } catch (err) {
-        console.error(err);
+      } catch (e) {
+        console.error(e);
       } finally {
         setLoading(false);
       }
@@ -352,22 +320,14 @@ const PatientHistory = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="p-12 text-center text-slate-500">
-        Loading medical records…
-      </div>
-    );
+    return <div className="p-12 text-center">Loading medical records…</div>;
   }
 
   if (!selected) {
-    return (
-      <div className="p-12 text-center text-slate-500">
-        No medical reports available.
-      </div>
-    );
+    return <div className="p-12 text-center">No records available.</div>;
   }
 
-  const sensors = selected.sensorData || {};
+  const sensors = selected.testData || {};
   const ml = selected.mlResult;
   const doctor = selected.doctorReport;
 
@@ -382,35 +342,32 @@ const PatientHistory = () => {
           </h3>
           {history.map((item) => (
             <TimelineItem
-              key={item.id}
+              key={item.analysisId}
               item={item}
-              active={item.id === selected.id}
+              active={item.analysisId === selected.analysisId}
               onClick={() => setSelected(item)}
             />
           ))}
         </div>
       </div>
 
-      {/* RIGHT MEDICAL REPORT */}
+      {/* RIGHT REPORT */}
       <div className="flex-1">
         <div className="bg-white border border-slate-200 rounded-lg p-8 space-y-10">
 
-          {/* HEADER */}
           <div>
             <h1 className="text-xl font-semibold text-slate-900">
               Medical Examination Report
             </h1>
 
             <button
-              onClick={() =>
-                generatePDF({ patient, report: selected })
-              }
+              onClick={() => generatePDF({ patient, report: selected })}
               className="text-sm font-medium text-indigo-600 hover:underline"
             >
               Download PDF
             </button>
 
-            <div className="flex items-center gap-4 text-sm text-slate-500 mt-2">
+            <div className="flex gap-4 text-sm text-slate-500 mt-2">
               <span className="flex items-center gap-1">
                 <Calendar className="w-4 h-4" />
                 {new Date(selected.createdAt).toLocaleDateString()}
@@ -422,7 +379,6 @@ const PatientHistory = () => {
             </div>
           </div>
 
-          {/* PATIENT SUMMARY */}
           <section>
             <h2 className="text-sm font-semibold text-slate-700 mb-4">
               Patient Summary
@@ -430,11 +386,10 @@ const PatientHistory = () => {
             <div className="border border-slate-200 rounded-lg p-4 space-y-2">
               <InfoRow label="Name" value={patient?.name} />
               <InfoRow label="Age" value={patient?.age && `${patient.age} yrs`} />
-              <InfoRow label="Cycle Type" value={patient?.cycleType} />
+              <InfoRow label="Cycle Type" value={sensors.cycleType} />
             </div>
           </section>
 
-          {/* VITAL SIGNS */}
           <section>
             <h2 className="text-sm font-semibold text-slate-700 mb-4">
               Vital Signs (Sensor Data)
@@ -448,7 +403,6 @@ const PatientHistory = () => {
             </div>
           </section>
 
-          {/* AI ANALYSIS */}
           <section>
             <h2 className="text-sm font-semibold text-slate-700 mb-4">
               ML Model Analysis
@@ -457,28 +411,24 @@ const PatientHistory = () => {
               <div className="border border-indigo-200 bg-indigo-50 rounded-lg p-4">
                 <div className="flex items-center gap-2 font-bold text-indigo-700 mb-1">
                   <Brain className="w-4 h-4" />
-                  <span className="text-sm font-medium">
-                    Prediction: {ml.prediction}
-                  </span>
+                  Prediction: {ml.prediction} (
+                  {(ml.confidenceScore * 100).toFixed(2)}%)
                 </div>
-                <p className="text-sm text-slate-600">
-                </p>
               </div>
             ) : (
-              <p className="text-sm text-slate-500 italic">
+              <p className="text-sm italic text-slate-500">
                 AI analysis not available.
               </p>
             )}
           </section>
 
-          {/* DOCTOR VERDICT */}
           <section>
             <h2 className="text-sm font-semibold text-slate-700 mb-4">
               Doctor’s Verdict
             </h2>
             <div className="border border-slate-200 rounded-lg p-4">
-              {doctor?.diagnosis ? (
-                <p className="text-sm text-slate-700 leading-relaxed">
+              {doctor ? (
+                <p className="text-sm text-slate-700">
                   {doctor.diagnosis}
                 </p>
               ) : (
@@ -490,7 +440,6 @@ const PatientHistory = () => {
             </div>
           </section>
 
-          {/* PRESCRIPTION */}
           <section>
             <h2 className="text-sm font-semibold text-slate-700 mb-4">
               Prescription
@@ -501,7 +450,7 @@ const PatientHistory = () => {
                   {doctor.prescription}
                 </p>
               ) : (
-                <p className="text-sm text-slate-500 italic">
+                <p className="text-sm italic text-slate-500">
                   No prescription issued.
                 </p>
               )}

@@ -44,7 +44,7 @@ export const signUpPatient = async (req, res) => {
   const resource = 'auth/SignUp'; // Define resource context
   
   try {
-    const { name, email, password, phoneNumber } = req.body;
+    const { name, email, password, phoneNumber, age } = req.body;
 
     // Log the initiation of the flow
     logger.info(`Registration request received for email: ${email}`, { 
@@ -53,7 +53,7 @@ export const signUpPatient = async (req, res) => {
       route: req.originalUrl 
     });
 
-    if (!name || !email || !password || !phoneNumber) {
+    if (!name || !email || !password || !phoneNumber || !age) {
       logger.warn('Registration failed: Missing fields', { resource });
       return res.status(400).json({ error: "All fields are required" });
     }
@@ -153,7 +153,7 @@ export const verifyOtpAndCreateAccount = async (req, res) => {
             email,
             age,
             phoneNumber,
-            age: 0,
+            age: age,
             cycleLength: 0,
             cycleType: "REGULAR",
             skinDarkening: false,

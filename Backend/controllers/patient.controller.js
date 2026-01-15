@@ -90,35 +90,20 @@ export const setPersonalData = async (req, res) => {
 
 export const getPatientTimeline = async (req, res) => {
   try {
-    
-    const doctorEmail = "abhijeetkolhe@gmail.com";
-    const patientEmail  = req.userEmail;
-    
+    const patientEmail = req.userEmail;
+
     if (!patientEmail) {
       return res.status(400).json({
         error: "Patient email is required",
       });
     }
-    
-    // 1️⃣ Fetch patient lifestyle & health info (ONE TIME)
+
+    // 1️⃣ Fetch patient BASIC info (for header only, NOT timeline logic)
     const patientInfo = await prisma.patientPersonalInfo.findUnique({
       where: { email: patientEmail },
       select: {
         name: true,
         age: true,
-
-        cycleLength: true,
-        cycleType: true,
-
-        skinDarkening: true,
-        hairGrowth: true,
-        pimples: true,
-        hairLoss: true,
-        weightGain: true,
-
-        fastFood: true,
-        hip: true,
-        waist: true,
       },
     });
 
@@ -132,7 +117,6 @@ export const getPatientTimeline = async (req, res) => {
     const timeline = await prisma.dataForDocAnalysis.findMany({
       where: {
         patientId: patientEmail,
-        doctorId: doctorEmail,
       },
       orderBy: {
         createdAt: "desc",
@@ -142,8 +126,21 @@ export const getPatientTimeline = async (req, res) => {
         status: true,
         createdAt: true,
 
-        sensorData: {
+        testData: {
           select: {
+            // Lifestyle snapshot
+            cycleLength: true,
+            cycleType: true,
+            skinDarkening: true,
+            hairGrowth: true,
+            pimples: true,
+            hairLoss: true,
+            weightGain: true,
+            fastFood: true,
+            hip: true,
+            waist: true,
+
+            // Sensor values
             spo2: true,
             temperature: true,
             heartRate: true,
@@ -174,9 +171,21 @@ export const getPatientTimeline = async (req, res) => {
     });
 
     return res.status(200).json({
-      patient: patientInfo,
+      patient: {
+        name: patientInfo.name,
+        age: patientInfo.age,
+      },
       totalRecords: timeline.length,
-      timeline,
+      timeline: timeline.map((item) => ({
+        analysisId: item.id,
+        status: item.status,
+        createdAt: item.createdAt,
+
+        testData: item.testData,
+
+        mlResult: item.mlResult || null,
+        doctorReport: item.doctorReport || null,
+      })),
     });
 
   } catch (error) {
@@ -287,13 +296,12 @@ export const getLiveSensorData = async (req, res) => {
 };
 
 export const saveSensorData = async (req, res) => {
-  const resource = 'Sensor/Save'; // Resource tag
+  const resource = 'Sensor/Save';
 
   try {
     const userEmail = req.userEmail;
     const { code } = req.body;
 
-    // Log Entry
     logger.info(`Request to save sensor data for code: ${code}`, { 
       resource,
       method: req.method,
@@ -305,47 +313,84 @@ export const saveSensorData = async (req, res) => {
     const sensorDataRaw = await redisClient.get(`sensor:${code}`);
 
     if (!pairingInfo || !sensorDataRaw) {
-      // Logic Warning: Client might be polling too early or data expired
       logger.warn(`Data not ready or expired for code: ${code}`, { resource });
       return res.status(400).json({ status: "pending" });
     }
 
     const { email } = JSON.parse(pairingInfo);
-    
-    // Security Check
+
     if (email !== userEmail) {
-      logger.warn(`Unauthorized access attempt. User ${userEmail} tried to claim data for ${email}`, { resource });
+      logger.warn(
+        `Unauthorized access attempt. User ${userEmail} tried to claim data for ${email}`,
+        { resource }
+      );
       return res.status(403).json({ error: "Unauthorized" });
     }
 
     const sensorData = JSON.parse(sensorDataRaw);
-    logger.info(`Redis data retrieved valid. Proceeding to DB storage.`, { resource });
+    logger.info(`Redis data retrieved. Fetching patient snapshot.`, { resource });
 
-    // 2️⃣ Save sensor data (DB)
-    const savedSensor = await prisma.sensorData.create({
+    // 2️⃣ Fetch CURRENT patient personal info (snapshot source)
+    const patientInfo = await prisma.patientPersonalInfo.findUnique({
+      where: { email: userEmail },
+      select: {
+        cycleLength: true,
+        cycleType: true,
+        skinDarkening: true,
+        hairGrowth: true,
+        pimples: true,
+        hairLoss: true,
+        weightGain: true,
+        fastFood: true,
+        hip: true,
+        waist: true,
+      },
+    });
+
+    if (!patientInfo) {
+      logger.error(`Patient personal info not found for ${userEmail}`, { resource });
+      return res.status(404).json({ error: "Patient profile not found" });
+    }
+
+    // 3️⃣ Save TestData (sensor + snapshot)
+    const savedTestData = await prisma.testData.create({
       data: {
+        patientEmail: userEmail,
+
+        // Sensor data
         spo2: sensorData.spo2,
         temperature: sensorData.temperature,
         heartRate: sensorData.heartRate,
         height: sensorData.height,
         weight: sensorData.weight,
-        patientEmail: userEmail,
+
+        // Patient snapshot
+        cycleLength: patientInfo.cycleLength,
+        cycleType: patientInfo.cycleType,
+        skinDarkening: patientInfo.skinDarkening,
+        hairGrowth: patientInfo.hairGrowth,
+        pimples: patientInfo.pimples,
+        hairLoss: patientInfo.hairLoss,
+        weightGain: patientInfo.weightGain,
+        fastFood: patientInfo.fastFood,
+        hip: patientInfo.hip,
+        waist: patientInfo.waist,
       },
     });
-    
-    // 3️⃣ Create analysis record (DB)
+
+    // 4️⃣ Create analysis record
     const analysis = await prisma.dataForDocAnalysis.create({
       data: {
         patientId: userEmail,
-        sensorDataId: savedSensor.id,
-        doctorId: "abhijeetkolhe@gmail.com", // You might want to make this dynamic later
+        testDataId: savedTestData.id, // 🔥 IMPORTANT CHANGE
+        doctorId: "abhijeetkolhe@gmail.com",
         status: "PENDING",
       },
     });
 
-    logger.info(`DB Records created. Analysis ID: ${analysis.id}`, { resource });
+    logger.info(`Test & Analysis created. Analysis ID: ${analysis.id}`, { resource });
 
-    // 4️⃣ Enqueue ML job (BullMQ)
+    // 5️⃣ Enqueue ML job
     const job = await MLQueue.add(
       "RUN_ML",
       { analysisId: analysis.id },
@@ -358,14 +403,14 @@ export const saveSensorData = async (req, res) => {
 
     logger.info(`Job enqueued in ML_QUEUE. Job ID: ${job.id}`, { resource });
 
-    // 5️⃣ Cleanup Redis
+    // 6️⃣ Cleanup Redis
     await redisClient.del(`sensor:${code}`);
     await redisClient.del(`pairing:${code}`);
-    
+
     logger.info(`Redis keys cleaned up for code: ${code}`, { resource });
 
     return res.status(201).json({
-      message: "Sensor data saved. ML analysis in progress.",
+      message: "Test data saved. ML analysis in progress.",
       analysisId: analysis.id,
     });
 
@@ -374,6 +419,7 @@ export const saveSensorData = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
+
 
 export const getPendingRequests = async(req, res)=>{
   try{

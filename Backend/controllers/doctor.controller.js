@@ -155,35 +155,7 @@ export const getCurrentPatientReviewRequest = async (req, res) => {
       });
     }
 
-    // 1️⃣ Fetch patient personal & lifestyle info
-    const patientInfo = await prisma.patientPersonalInfo.findUnique({
-      where: { email: patientEmail },
-      select: {
-        name: true,
-        age: true,
-
-        cycleLength: true,
-        cycleType: true,
-
-        skinDarkening: true,
-        hairGrowth: true,
-        pimples: true,
-        hairLoss: true,
-        weightGain: true,
-
-        fastFood: true,
-        hip: true,
-        waist: true,
-      },
-    });
-
-    if (!patientInfo) {
-      return res.status(404).json({
-        error: "Patient not found",
-      });
-    }
-
-    // 2️⃣ Fetch latest ACTIVE analysis (not whole timeline)
+    // 1️⃣ Fetch latest ACTIVE analysis for this patient + doctor
     const analysis = await prisma.dataForDocAnalysis.findFirst({
       where: {
         patientId: patientEmail,
@@ -193,7 +165,7 @@ export const getCurrentPatientReviewRequest = async (req, res) => {
         },
       },
       orderBy: {
-        createdAt: "desc", // latest active request
+        createdAt: "desc",
       },
       select: {
         id: true,
@@ -206,8 +178,21 @@ export const getCurrentPatientReviewRequest = async (req, res) => {
           },
         },
 
-        sensorData: {
+        testData: {
           select: {
+            // Patient snapshot
+            cycleLength: true,
+            cycleType: true,
+            skinDarkening: true,
+            hairGrowth: true,
+            pimples: true,
+            hairLoss: true,
+            weightGain: true,
+            fastFood: true,
+            hip: true,
+            waist: true,
+
+            // Sensor readings
             spo2: true,
             temperature: true,
             heartRate: true,
@@ -234,9 +219,9 @@ export const getCurrentPatientReviewRequest = async (req, res) => {
       });
     }
 
-    // 3️⃣ Prepare doctor-review payload
+    // 2️⃣ Prepare doctor-review payload (time-consistent)
     const responsePayload = {
-      patient: patientInfo,
+      patientEmail,
 
       analysis: {
         analysisId: analysis.id,
@@ -245,7 +230,27 @@ export const getCurrentPatientReviewRequest = async (req, res) => {
         doctorName: analysis.doctor?.name || null,
       },
 
-      sensorData: analysis.sensorData,
+      testData: {
+        // Lifestyle & health snapshot
+        cycleLength: analysis.testData.cycleLength,
+        cycleType: analysis.testData.cycleType,
+        skinDarkening: analysis.testData.skinDarkening,
+        hairGrowth: analysis.testData.hairGrowth,
+        pimples: analysis.testData.pimples,
+        hairLoss: analysis.testData.hairLoss,
+        weightGain: analysis.testData.weightGain,
+        fastFood: analysis.testData.fastFood,
+        hip: analysis.testData.hip,
+        waist: analysis.testData.waist,
+
+        // Sensor data
+        spo2: analysis.testData.spo2,
+        temperature: analysis.testData.temperature,
+        heartRate: analysis.testData.heartRate,
+        height: analysis.testData.height,
+        weight: analysis.testData.weight,
+        recordedAt: analysis.testData.recordedAt,
+      },
 
       mlResult:
         analysis.status === "ML_PROCESSED"
@@ -264,7 +269,6 @@ export const getCurrentPatientReviewRequest = async (req, res) => {
 };
 
 
-
 export const getPatientTimeline = async (req, res) => {
   try {
     const doctorEmail = req.doctor.email;
@@ -276,24 +280,12 @@ export const getPatientTimeline = async (req, res) => {
       });
     }
 
+    // 1️⃣ Fetch patient BASIC info (for header only, NOT timeline logic)
     const patientInfo = await prisma.patientPersonalInfo.findUnique({
       where: { email: patientEmail },
       select: {
         name: true,
         age: true,
-
-        cycleLength: true,
-        cycleType: true,
-
-        skinDarkening: true,
-        hairGrowth: true,
-        pimples: true,
-        hairLoss: true,
-        weightGain: true,
-
-        fastFood: true,
-        hip: true,
-        waist: true,
       },
     });
 
@@ -303,10 +295,10 @@ export const getPatientTimeline = async (req, res) => {
       });
     }
 
+    // 2️⃣ Fetch timeline (latest → oldest)
     const timeline = await prisma.dataForDocAnalysis.findMany({
       where: {
         patientId: patientEmail,
-        doctorId: doctorEmail, // access control
       },
       orderBy: {
         createdAt: "desc",
@@ -314,16 +306,23 @@ export const getPatientTimeline = async (req, res) => {
       select: {
         id: true,
         status: true,
-        createdAt: true, // 📅 analysis submission date
+        createdAt: true,
 
-        doctor: {
+        testData: {
           select: {
-            name: true, // 👨‍⚕️ doctor name
-          },
-        },
+            // Lifestyle snapshot
+            cycleLength: true,
+            cycleType: true,
+            skinDarkening: true,
+            hairGrowth: true,
+            pimples: true,
+            hairLoss: true,
+            weightGain: true,
+            fastFood: true,
+            hip: true,
+            waist: true,
 
-        sensorData: {
-          select: {
+            // Sensor values
             spo2: true,
             temperature: true,
             heartRate: true,
@@ -347,30 +346,28 @@ export const getPatientTimeline = async (req, res) => {
             finalVerdict: true,
             prescription: true,
             notes: true,
-            approvedAt: true, // 📅 doctor approval date
+            approvedAt: true,
           },
         },
       },
     });
 
-    // 3️⃣ Shape response cleanly for frontend
-    const formattedTimeline = timeline.map((item) => ({
-      analysisId: item.id,
-      status: item.status,
-
-      analysisDate: item.createdAt,
-      doctorName: item.doctor?.name || null,
-      doctorApprovedAt: item.doctorReport?.approvedAt || null,
-
-      sensorData: item.sensorData,
-      mlResult: item.mlResult,
-      doctorReport: item.doctorReport,
-    }));
-
     return res.status(200).json({
-      patient: patientInfo,
-      totalRecords: formattedTimeline.length,
-      timeline: formattedTimeline,
+      patient: {
+        name: patientInfo.name,
+        age: patientInfo.age,
+      },
+      totalRecords: timeline.length,
+      timeline: timeline.map((item) => ({
+        analysisId: item.id,
+        status: item.status,
+        createdAt: item.createdAt,
+
+        testData: item.testData,
+
+        mlResult: item.mlResult || null,
+        doctorReport: item.doctorReport || null,
+      })),
     });
 
   } catch (error) {
@@ -381,19 +378,100 @@ export const getPatientTimeline = async (req, res) => {
   }
 };
 
+export const updatePatientReport = async (req, res) => {
+  try {
+    const doctorEmail = req.doctor.email;
+    const { analysisId } = req.params;
 
-export const getModelAnalysis = async (req, res)=>{
-  try{
+    const { diagnosis, prescription, notes } = req.body;
 
-  }catch(err){
+    // 1️⃣ Basic validation
+    if (!analysisId) {
+      return res.status(400).json({
+        error: "analysisId is required",
+      });
+    }
 
+    if (!finalVerdict) {
+      return res.status(400).json({
+        error: "finalVerdict (diagnosis) is required",
+      });
+    }
+
+    // 2️⃣ Fetch analysis & verify ownership
+    const analysis = await prisma.dataForDocAnalysis.findUnique({
+      where: { id: analysisId },
+      select: {
+        id: true,
+        status: true,
+        doctorId: true,
+        doctorReport: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!analysis) {
+      return res.status(404).json({
+        error: "Analysis not found",
+      });
+    }
+
+    // if (analysis.doctorId !== doctorEmail) {
+    //   return res.status(403).json({
+    //     error: "You are not authorized to update this report",
+    //   });
+    // }
+
+    // if (analysis.status !== "ML_PROCESSED") {
+    //   return res.status(400).json({
+    //     error: `Cannot submit report when status is ${analysis.status}`,
+    //   });
+    // }
+
+    // if (analysis.doctorReport) {
+    //   return res.status(400).json({
+    //     error: "Doctor report already exists for this analysis",
+    //   });
+    // }
+
+    // 3️⃣ Create Doctor Report
+    const report = await prisma.doctorReport.create({
+      data: {
+        analysisId,
+        doctorId: doctorEmail,
+        finalVerdict : diagnosis,
+        prescription: prescription || null,
+        notes: notes || null,
+      },
+    });
+
+    // 4️⃣ Mark analysis as COMPLETED
+    await prisma.dataForDocAnalysis.update({
+      where: { id: analysisId },
+      data: { status: "COMPLETED" },
+    });
+
+    // 5️⃣ Response
+    return res.status(201).json({
+      message: "Patient report submitted successfully",
+      report: {
+        id: report.id,
+        analysisId: report.analysisId,
+        finalVerdict: report.finalVerdict,
+        prescription: report.prescription,
+        notes: report.notes,
+        approvedAt: report.approvedAt,
+      },
+    });
+
+  } catch (error) {
+    console.error("Update patient report error:", error);
+    return res.status(500).json({
+      error: "Failed to update patient report",
+    });
   }
-} 
+};
 
-export const submitDoctorsReport = async(req, res)=>{
-  try{
 
-  }catch(err){
-    
-  }
-}
+

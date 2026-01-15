@@ -21,15 +21,15 @@ export const doctorService = {
         return response.data;
     },
 
-    getPatientInfo : async()=>{
-        const response = await api.get('doctor/patientInfo');
-        console.log(response.data);
-        return response.data
-    },
-
     getPatientInfoByEmail: async (email) =>{
         const response = api.get(`/doctor/patientInfo/${email}`);
         console.log(response);
         return response;
-    } 
+    } ,
+
+    updatePatientReport : async(email)=>{
+        const response = api.post(`/doctor/updatePatientReport/${email}`);
+        console.log(response);
+        return response;
+    }
 }
