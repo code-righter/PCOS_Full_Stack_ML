@@ -288,7 +288,7 @@ const Divider = () => (
 );
 
 const SubsectionCard = ({ title, icon, children }) => (
-  <div className="min-w-[280px]">
+  <div className="min-w-70">
     <h4 className="flex items-center text-white gap-2 text-xs font-bold  uppercase tracking-wider mb-4">
       {icon} {title}
     </h4>
