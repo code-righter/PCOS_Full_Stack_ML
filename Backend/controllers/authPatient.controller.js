@@ -241,7 +241,7 @@ export const signInPatient = async (req, res) => {
     }
 
     // Create Session
-    const ttlSeconds = 10 * 60;
+    const ttlSeconds = 40 * 60;
     const sessionId = crypto.randomUUID();
 
     await redisClient.setex(`session:${sessionId}`, ttlSeconds, user.email.toString());

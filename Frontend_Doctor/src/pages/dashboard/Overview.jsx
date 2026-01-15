@@ -34,13 +34,6 @@ const Overview = () => {
       sub: 'Action required' 
     },
     { 
-      title: 'Analyzed Today', 
-      value: 0, // Your API didn't provide this yet, keeping 0
-      icon: Activity, 
-      color: 'bg-blue-100 text-blue-600', 
-      sub: 'Processed' 
-    },
-    { 
       title: 'Total Patients', 
       value: metricsData.totalPatientsCount || 0, // Accessing parsed data
       icon: Users, 

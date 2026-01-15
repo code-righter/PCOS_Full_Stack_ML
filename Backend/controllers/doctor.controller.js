@@ -8,7 +8,9 @@ export const getDocDashboardMetrics = async (req, res) => {
     const pendingRequestsCount = await prisma.dataForDocAnalysis.count({
       where: {
         doctorId: doctorEmail,
-        status: "PENDING",
+        status: {
+          in : ["PENDING", "ML_PROCESSED", "ML_PROCESSING"]
+        }
       },
     });
 
@@ -383,7 +385,7 @@ export const updatePatientReport = async (req, res) => {
     const doctorEmail = req.doctor.email;
     const { analysisId } = req.params;
 
-    const { diagnosis, prescription, notes } = req.body;
+    const { verdict, prescription, status } = req.body;
 
     // 1️⃣ Basic validation
     if (!analysisId) {
@@ -440,9 +442,9 @@ export const updatePatientReport = async (req, res) => {
       data: {
         analysisId,
         doctorId: doctorEmail,
-        finalVerdict : diagnosis,
+        finalVerdict : verdict,
         prescription: prescription || null,
-        notes: notes || null,
+        notes: status || null,
       },
     });
 

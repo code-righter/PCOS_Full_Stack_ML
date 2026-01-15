@@ -8,7 +8,7 @@ doctorRouter.get('/dashboardMetrics', verifyDoctor, getDocDashboardMetrics)
 doctorRouter.get('/pendingPatients', verifyDoctor, getPendingPatientsData)
 doctorRouter.get('/allPatients', verifyDoctor, getAllPatients)
 doctorRouter.get('/patientInfo/:patientEmail', verifyDoctor, getCurrentPatientReviewRequest);
-doctorRouter.post('/updatePatientReport/:patientEmail', verifyDoctor, updatePatientReport);
+doctorRouter.post('/updatePatientReport/:analysisId', verifyDoctor, updatePatientReport);
 
 // doctorRouter.post('/submitReport', verifyDoctor, submitDoctorsReport);
 

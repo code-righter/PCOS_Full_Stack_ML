@@ -27,8 +27,8 @@ export const doctorService = {
         return response;
     } ,
 
-    updatePatientReport : async(email)=>{
-        const response = api.post(`/doctor/updatePatientReport/${email}`);
+    updatePatientReport : async(id, report)=>{
+        const response = api.post(`/doctor/updatePatientReport/${id}`, report);
         console.log(response);
         return response;
     }

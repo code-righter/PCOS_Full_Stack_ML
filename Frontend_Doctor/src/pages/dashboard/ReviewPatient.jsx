@@ -35,12 +35,11 @@ const ReviewPatient = () => {
   /* ================= FETCH ================= */
   useEffect(() => {
     const pendingRequest = pendingPatients?.find(p => p.id === id);
-      const email = pendingRequest?.patient?.email;
-      console.log(email)
+    console.log(pendingPatients)
     const fetchData = async () => {
       try {
         setLoading(true);
-        const res = await doctorService.getPatientInfoByEmail(email);
+        const res = await doctorService.getPatientInfoByEmail(id, report);
         setResponse(res.data || res);
       } catch (err) {
         console.error(err);
@@ -60,10 +59,11 @@ const ReviewPatient = () => {
   const handleSubmit = async () => {
     setIsSubmitting(true);
     try {
-      await doctorService.updatePatientReport(email);
+      await doctorService.updatePatientReport(email, report);
       showToast("Report submitted successfully", "success");
       setTimeout(() => navigate("/review"), 1000);
-    } catch {
+    } catch(err) {
+      console.log(err)
       showToast("Submission failed", "error");
     } finally {
       setIsSubmitting(false);

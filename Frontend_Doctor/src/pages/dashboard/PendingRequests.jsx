@@ -10,8 +10,8 @@ const PendingRequests = () => {
 
   console.log(pendingPatients)
 
-  const handleReview = (patientId) => {
-    navigate(`/review/${patientId}`);
+  const handleReview = (email) => {
+    navigate(`/review/${email}`);
   };
 
   if (loading) return <div className="p-10 text-center animate-pulse">Loading Requests...</div>;
@@ -53,7 +53,7 @@ const PendingRequests = () => {
                     </td>
                     <td className="p-4 text-center">
                       <button 
-                        onClick={() => handleReview(item.id)}
+                        onClick={() => handleReview(item.patient?.email)}
                         className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
                       >
                         Start Review <ArrowRight size={16} />
