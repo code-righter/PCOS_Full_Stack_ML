@@ -18,7 +18,8 @@ export const authService = {
   },
 
   logout: () => {
-    sessionStorage.removeItem('token');
+    localStorage.removeItem('token');
+    localStorage.removeItem('doctor_data')
     // Optional: Call backend logout endpoint here
   }
 };

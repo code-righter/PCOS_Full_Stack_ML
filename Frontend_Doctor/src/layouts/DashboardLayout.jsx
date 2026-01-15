@@ -1,5 +1,5 @@
 import React from 'react';
-import { Outlet, NavLink } from 'react-router-dom';
+import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Clock, 
@@ -7,26 +7,30 @@ import {
   LogOut,
   Stethoscope 
 } from 'lucide-react';
-import { useAuth}  from '../context/AuthContext';
+import { useAuth } from '../context/AuthContext';
 
 const DashboardLayout = () => {
+  // 1. Get the logout function from context
+  const { doctor, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const {doctor}  = useAuth();
+  // 2. Create a handler to logout and redirect
+  const handleLogout = () => {
+    logout();
+    navigate('/login'); // Force redirect to login page
+  };
   
-  // Navigation Items based on your request
   const navItems = [
     { path: '/', label: 'Overview', icon: LayoutDashboard },
-    { path: '/pending', label: 'Pending Requests', icon: Clock }, // Points to Pending Page
-    { path: '/all-patients', label: 'All Patients', icon: Users }, // Points to Patient Page
+    { path: '/pending', label: 'Pending Requests', icon: Clock },
+    { path: '/all-patients', label: 'All Patients', icon: Users },
   ];
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900 transition-colors duration-300">
       
-      {/* --- Sidebar --- */}
-      <aside className="w-64  bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transition-colors duration-300">
+      <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 flex flex-col transition-colors duration-300">
         
-        {/* Logo Section */}
         <div className="p-6 border-b border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-3">
             <div className="bg-blue-600 p-2 rounded-lg">
@@ -39,13 +43,12 @@ const DashboardLayout = () => {
           </div>
         </div>
 
-        {/* Navigation Links */}
         <nav className="flex-1 px-4 py-6 space-y-2">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.path === '/'} // Ensures 'Overview' isn't always active
+              end={item.path === '/'}
               className={({ isActive }) =>
                 `flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium ${
                   isActive
@@ -60,26 +63,32 @@ const DashboardLayout = () => {
           ))}
         </nav>
 
-        {/* Doctor Profile / Footer */}
         <div className="p-4 border-t border-slate-100 dark:border-slate-700">
           <div className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30">
-            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold">
-              DS
+            <div className="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold uppercase">
+              {/* Fallback for initials */}
+              {doctor?.name ? doctor.name.substring(0,2) : "DS"}
             </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-bold text-slate-800 dark:text-white">{doctor?.name || "..."}</h4>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Gynecologist</p>
+            <div className="flex-1 overflow-hidden">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-white truncate">
+                {doctor?.name || "Dr. Smith"}
+              </h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 truncate">Gynecologist</p>
             </div>
-            <button className="text-slate-400 hover:text-red-500 transition-colors">
+            
+            {/* 3. Attach the handler here */}
+            <button 
+              onClick={handleLogout}
+              className="text-slate-400 hover:text-red-500 transition-colors p-1"
+              title="Logout"
+            >
               <LogOut size={18} />
             </button>
           </div>
         </div>
       </aside>
 
-      {/* --- Main Content Area --- */}
       <main className="flex-1 overflow-y-auto">
-        {/* The Outlet renders the child route (Overview, Pending, or Patient) */}
         <Outlet />
       </main>
 

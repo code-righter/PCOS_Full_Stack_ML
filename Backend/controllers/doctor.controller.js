@@ -46,7 +46,9 @@ export const getPendingPatientsData = async (req, res) => {
     const pendingRequests = await prisma.dataForDocAnalysis.findMany({
       where: {
         doctorId: doctorEmail,
-        status: "PENDING",
+        status: {
+          in : ["ML_PROCESSED", "ML_PROCESSING", "PENDING"]
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -138,6 +140,125 @@ export const getAllPatients = async (req, res) => {
     console.error("Get all patients error:", error);
     return res.status(500).json({
       error: "Failed to fetch patients",
+    });
+  }
+};
+
+export const getCurrentPatientReviewRequest = async (req, res) => {
+  try {
+    const doctorEmail = req.doctor.email;
+    const { patientEmail } = req.params;
+
+    if (!patientEmail) {
+      return res.status(400).json({
+        error: "Patient email is required",
+      });
+    }
+
+    // 1️⃣ Fetch patient personal & lifestyle info
+    const patientInfo = await prisma.patientPersonalInfo.findUnique({
+      where: { email: patientEmail },
+      select: {
+        name: true,
+        age: true,
+
+        cycleLength: true,
+        cycleType: true,
+
+        skinDarkening: true,
+        hairGrowth: true,
+        pimples: true,
+        hairLoss: true,
+        weightGain: true,
+
+        fastFood: true,
+        hip: true,
+        waist: true,
+      },
+    });
+
+    if (!patientInfo) {
+      return res.status(404).json({
+        error: "Patient not found",
+      });
+    }
+
+    // 2️⃣ Fetch latest ACTIVE analysis (not whole timeline)
+    const analysis = await prisma.dataForDocAnalysis.findFirst({
+      where: {
+        patientId: patientEmail,
+        doctorId: doctorEmail,
+        status: {
+          in: ["PENDING", "ML_PROCESSING", "ML_PROCESSED"],
+        },
+      },
+      orderBy: {
+        createdAt: "desc", // latest active request
+      },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+
+        doctor: {
+          select: {
+            name: true,
+          },
+        },
+
+        sensorData: {
+          select: {
+            spo2: true,
+            temperature: true,
+            heartRate: true,
+            height: true,
+            weight: true,
+            recordedAt: true,
+          },
+        },
+
+        mlResult: {
+          select: {
+            prediction: true,
+            confidenceScore: true,
+            modelVersion: true,
+            generatedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!analysis) {
+      return res.status(404).json({
+        message: "No active review request found for this patient",
+      });
+    }
+
+    // 3️⃣ Prepare doctor-review payload
+    const responsePayload = {
+      patient: patientInfo,
+
+      analysis: {
+        analysisId: analysis.id,
+        status: analysis.status,
+        createdAt: analysis.createdAt,
+        doctorName: analysis.doctor?.name || null,
+      },
+
+      sensorData: analysis.sensorData,
+
+      mlResult:
+        analysis.status === "ML_PROCESSED"
+          ? analysis.mlResult
+          : null,
+    };
+
+    return res.status(200).json(responsePayload);
+
+  } catch (error) {
+    console.error("Current patient review fetch error:", error);
+    return res.status(500).json({
+      error: "Failed to fetch current patient review request",
     });
   }
 };

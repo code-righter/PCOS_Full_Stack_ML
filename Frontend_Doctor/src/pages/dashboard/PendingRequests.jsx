@@ -48,7 +48,7 @@ const PendingRequests = () => {
                     </td>
                     <td className="p-4">
                       <span className="px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
-                        Pending
+                        {item.status}
                       </span>
                     </td>
                     <td className="p-4 text-center">

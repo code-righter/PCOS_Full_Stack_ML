@@ -22,116 +22,255 @@ import { patientService } from "../../services/patientService";
 
   const generatePDF = ({ patient, report }) => {
   const doc = new jsPDF();
-  let y = 20;
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+  const contentWidth = pageWidth - 2 * margin;
+  let y = margin;
 
-  // ===== TITLE =====
-  doc.setFontSize(18);
+  // ===== HELPER FUNCTIONS =====
+  const addSection = (title) => {
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(25, 51, 102); // Dark blue
+    doc.text(title, margin, y);
+    y += 1;
+    doc.setDrawColor(79, 129, 189); // Blue line
+    doc.setLineWidth(0.5);
+    doc.line(margin, y, pageWidth - margin, y);
+    y += 6;
+  };
+
+  const addField = (label, value, isItalic = false) => {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", isItalic ? "italic" : "normal");
+    doc.setTextColor(0, 0, 0);
+    const fieldText = `${label}: `;
+    const valueText = value ?? "—";
+    
+    doc.text(fieldText, margin + 5, y);
+    doc.setFont("helvetica", "bold");
+    doc.text(valueText, margin + 50, y);
+    y += 6;
+  };
+
+  const addWrappedText = (text, isTitle = false) => {
+    doc.setFontSize(isTitle ? 11 : 10);
+    doc.setFont("helvetica", isTitle ? "bold" : "normal");
+    doc.setTextColor(isTitle ? 0 : 40, isTitle ? 0 : 40, isTitle ? 0 : 40);
+    
+    const lines = doc.splitTextToSize(text, contentWidth - 10);
+    lines.forEach((line, index) => {
+      if (y > pageHeight - 20) {
+        doc.addPage();
+        y = margin;
+      }
+      doc.text(line, margin + 5, y);
+      y += isTitle ? 7 : 5;
+    });
+  };
+
+  // ===== PAGE BREAK CHECK =====
+  const checkPageBreak = (neededSpace = 15) => {
+    if (y + neededSpace > pageHeight - margin) {
+      doc.addPage();
+      y = margin;
+    }
+  };
+
+  // ===== HEADER WITH LOGO AREA =====
+  doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
-  doc.text("PCOS REPORT", 105, y, { align: "center" });
-
-  y += 10;
-  doc.setLineWidth(0.5);
-  doc.line(20, y, 190, y);
-  y += 10;
-
-  // ===== PATIENT INFO =====
-  doc.setFontSize(11);
-  doc.setFont("helvetica", "normal");
-
-  doc.text(`Patient Name: ${patient?.name || "-"}`, 20, y);
-  doc.text(`Age: ${patient?.age || "-"}`, 140, y);
-
-  y += 7;
-  doc.text(`Phone Number: ${patient?.phoneNumber || "-"}`, 20, y);
-
-  y += 10;
-  doc.line(20, y, 190, y);
+  doc.setTextColor(25, 51, 102);
+  doc.text("PCOS DIAGNOSTIC REPORT", pageWidth / 2, y, { align: "center" });
   y += 8;
 
-  // ===== SENSOR + PERSONAL DATA =====
-  doc.setFont("helvetica", "bold");
-  doc.text("PERSONAL & SENSOR DATA", 20, y);
-  y += 6;
-
+  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
+  doc.setTextColor(100, 100, 100);
+  doc.text(`Report Generated: ${new Date().toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, y, { align: "center" });
+  y += 4;
+  doc.text(`Time: ${new Date().toLocaleTimeString('en-IN')}`, pageWidth / 2, y, { align: "center" });
+  y += 8;
+
+  doc.setLineWidth(1);
+  doc.setDrawColor(79, 129, 189);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 8;
+
+  // ===== PATIENT DEMOGRAPHICS =====
+  addSection("PATIENT INFORMATION");
+  
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+  
+  // Two column layout for patient info
+  doc.text(`Name: ${patient?.name || "—"}`, margin + 5, y);
+  doc.text(`Age: ${patient?.age || "—"} years`, pageWidth / 2 + 10, y);
+  y += 6;
+  
+  doc.text(`Phone: ${patient?.phoneNumber || "—"}`, margin + 5, y);
+  doc.text(`Email: ${patient?.email || "—"}`, pageWidth / 2 + 10, y);
+  y += 6;
+  
+  doc.text(`Cycle Type: ${patient?.cycleType || "—"}`, margin + 5, y);
+  y += 10;
+
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 8;
+
+  // ===== VITAL SIGNS & SENSOR DATA =====
+  checkPageBreak(50);
+  addSection("VITAL SIGNS & SENSOR DATA");
 
   const sensors = report.sensorData || {};
-
-  const rows = [
-    ["Height (cm)", sensors.height],
-    ["Weight (kg)", sensors.weight],
-    ["Heart Rate (bpm)", sensors.heartRate],
-    ["SpO₂ (%)", sensors.spo2],
-    ["Temperature (°C)", sensors.temperature],
-    ["Cycle Type", patient?.cycleType]
+  const vitalData = [
+    ["Height", `${sensors.height || "—"} cm`],
+    ["Weight", `${sensors.weight || "—"} kg`],
+    ["Heart Rate", `${sensors.heartRate || "—"} bpm`],
+    ["Blood Oxygen (SpO₂)", `${sensors.spo2 || "—"} %`],
+    ["Body Temperature", `${sensors.temperature || "—"} °C`],
   ];
 
-  rows.forEach(([label, value]) => {
-    doc.text(`${label}: ${value ?? "-"}`, 25, y);
-    y += 6;
+  // Create a nice grid for vital signs
+  const vitalWidth = contentWidth / 2 - 5;
+  let vitalY = y;
+  let colIndex = 0;
+
+  vitalData.forEach(([label, value], index) => {
+    const xPos = margin + 5 + (colIndex * (vitalWidth + 10));
+    
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(79, 129, 189);
+    doc.text(label, xPos, vitalY);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(11);
+    doc.text(value, xPos, vitalY + 6);
+    
+    colIndex++;
+    if (colIndex === 2) {
+      colIndex = 0;
+      vitalY += 15;
+    }
   });
 
-  y += 4;
-  doc.line(20, y, 190, y);
+  y = vitalY + 15;
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
   y += 8;
 
-  // ===== DOCTOR VERDICT =====
+  // ===== DOCTOR'S ASSESSMENT =====
+  checkPageBreak(50);
+  addSection("CLINICAL ASSESSMENT");
+
+  doc.setFontSize(10);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+  
+  const doctorReportText = report.doctorReport || "Clinical assessment pending.";
+  const doctorLines = doc.splitTextToSize(doctorReportText, contentWidth - 10);
+  
+  doctorLines.forEach((line) => {
+    if (y > pageHeight - 30) {
+      doc.addPage();
+      y = margin;
+    }
+    doc.text(line, margin + 5, y);
+    y += 5;
+  });
+
+  y += 5;
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 8;
+
+  // ===== ML MODEL ANALYSIS =====
+  checkPageBreak(40);
+  addSection("MACHINE LEARNING ANALYSIS");
+
+  const mlPrediction = report.mlResult?.prediction || "ML analysis pending";
+  const modelVersion = report.mlResult?.modelVersion || "Model version unavailable";
+  const mlConfidence = report.mlResult?.confidence || null;
+
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.text("DOCTOR'S VERDICT", 20, y);
-  y += 6;
+  doc.setTextColor(25, 51, 102);
+  doc.text("Prediction:", margin + 5, y);
+  
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(0, 0, 0);
+  const predictionLines = doc.splitTextToSize(mlPrediction, contentWidth - 20);
+  
+  predictionLines.forEach((line) => {
+    doc.text(line, margin + 25, y);
+    y += 5;
+  });
+
+  y += 3;
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(25, 51, 102);
+  doc.setFontSize(9);
+  doc.text("Model Details:", margin + 5, y);
+  y += 4;
 
   doc.setFont("helvetica", "normal");
-  const verdict =
-    report.doctorReport || "Doctor review pending.";
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(9);
+  doc.text(`Version: ${modelVersion}`, margin + 10, y);
+  
+  if (mlConfidence) {
+    y += 5;
+    doc.text(`Confidence: ${mlConfidence}%`, margin + 10, y);
+  }
 
-  doc.text(verdict, 25, y, { maxWidth: 160 });
-  y += 20;
-  // ===== AI model Analysis =====
-  doc.setFont("helvetica", "bold");
-  doc.text("ML Model Analysis", 20, y);
-  y += 6;
+  y += 10;
+  doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.3);
+  doc.line(margin, y, pageWidth - margin, y);
+  y += 8;
 
+  // ===== PRESCRIPTION & RECOMMENDATIONS =====
+  checkPageBreak(40);
+  addSection("PRESCRIPTION & RECOMMENDATIONS");
+
+  const prescriptionText = report.doctorReport?.prescription || "No prescription issued at this time.";
+  
+  doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  const mlPrediction =
-    report.mlResult?.prediction || "ML Analysis Pending";
-  const mlConfidence =
-    report.mlResult?.confidenceScore || "Confidence score not available";
-  const modelVersion =
-    report.mlResult?.modelVersion || "Failed to load model version";
+  doc.setTextColor(0, 0, 0);
+  
+  const prescriptionLines = doc.splitTextToSize(prescriptionText, contentWidth - 10);
+  
+  prescriptionLines.forEach((line) => {
+    if (y > pageHeight - 20) {
+      doc.addPage();
+      y = margin;
+    }
+    doc.text(line, margin + 5, y);
+    y += 5;
+  });
 
-  doc.text(mlPrediction, 25, y, { maxWidth: 160 });
-  y += 6;
-  doc.text(mlConfidence, 25, y, { maxWidth: 160 });
-  y += 6;
-  doc.text(modelVersion, 25, y, { maxWidth: 160 });
-  y += 20;
-
-  // ===== PRESCRIPTION =====
-  doc.setFont("helvetica", "bold");
-  doc.text("PRESCRIPTION", 20, y);
-  y += 6;
-
-  doc.setFont("helvetica", "normal");
-  const prescription =
-    report.doctorReport?.prescription || "No prescription issued.";
-
-  doc.text(prescription, 25, y, { maxWidth: 160 });
-
-  y += 20;
-  doc.line(20, y, 190, y);
-  y += 6;
+  y += 10;
 
   // ===== FOOTER =====
-  doc.setFontSize(9);
-  doc.text(
-    `Generated on: ${new Date().toLocaleString()}`,
-    105,
-    y,
-    { align: "center" }
-  );
+  const footerY = pageHeight - 15;
+  doc.setFontSize(8);
+  doc.setFont("helvetica", "italic");
+  doc.setTextColor(150, 150, 150);
+  doc.line(margin, footerY - 5, pageWidth - margin, footerY - 5);
+  doc.text("This report is generated by the PCOS Detection System and should be reviewed by a qualified healthcare professional.", pageWidth / 2, footerY, { align: "center" });
 
-  // ===== SAVE =====
-  doc.save(`PCOS_Report_${patient?.name || "Patient"}.pdf`);
+  // ===== SAVE PDF =====
+  const fileName = `PCOS_Report_${patient?.name || "Patient"}_${new Date().getTime()}.pdf`;
+  doc.save(fileName);
 };
 
 
@@ -312,19 +451,17 @@ const PatientHistory = () => {
           {/* AI ANALYSIS */}
           <section>
             <h2 className="text-sm font-semibold text-slate-700 mb-4">
-              AI Model Analysis
+              ML Model Analysis
             </h2>
             {ml ? (
               <div className="border border-indigo-200 bg-indigo-50 rounded-lg p-4">
-                <div className="flex items-center gap-2 text-indigo-700 mb-1">
+                <div className="flex items-center gap-2 font-bold text-indigo-700 mb-1">
                   <Brain className="w-4 h-4" />
                   <span className="text-sm font-medium">
                     Prediction: {ml.prediction}
                   </span>
                 </div>
                 <p className="text-sm text-slate-600">
-                  Risk Level: <strong>{ml.riskLevel}</strong>  
-                  {ml.confidence && ` • Confidence: ${ml.confidence}%`}
                 </p>
               </div>
             ) : (

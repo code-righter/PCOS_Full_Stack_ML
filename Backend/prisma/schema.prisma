@@ -63,7 +63,7 @@ model PatientPersonalInfo {
   updatedAt   DateTime @updatedAt
 
   analyses    DataForDocAnalysis[]
-  sensorData  SensorData[] 
+  testData    TestData[] 
   
   @@index([email])
 }
@@ -91,17 +91,33 @@ model Doctor {
   reports          DoctorReport[]
 }
 
-model SensorData {
-  id           String   @id @default(uuid())
+model TestData {
+  id String @id @default(uuid())
 
   patientEmail String
-  spo2         Float?
-  temperature  Float?
-  heartRate    Int?
-  height       Float?
-  weight       Float?
 
-  recordedAt   DateTime @default(now())
+  // ───── Sensor readings ─────
+  spo2        Float?
+  temperature Float?
+  heartRate   Int?
+  height      Float?   // cm
+  weight      Float?   // kg
+
+  // ───── Patient snapshot (at test time) ─────
+  cycleLength   Int
+  cycleType     CycleType
+
+  skinDarkening Boolean
+  hairGrowth    Boolean
+  pimples       Boolean
+  hairLoss      Boolean
+  weightGain    Boolean
+
+  fastFood      Boolean
+  hip           Float
+  waist         Float
+
+  recordedAt DateTime @default(now())
 
   analysis     DataForDocAnalysis?
   patient      PatientPersonalInfo @relation(fields: [patientEmail],references: [email])
@@ -111,24 +127,28 @@ model SensorData {
 
 
 model DataForDocAnalysis {
-  id            String   @id @default(uuid())
-  patientId     String
-  doctorId      String?
+  id String @id @default(uuid())
 
-  sensorDataId  String   @unique
-  status        AnalysisStatus @default(PENDING)
+  patientId String
+  doctorId  String?
 
-  createdAt     DateTime @default(now())
+  testDataId String @unique
 
-  mlResult      MLResult?
-  doctorReport  DoctorReport?
+  status AnalysisStatus @default(PENDING)
+  createdAt DateTime @default(now())
 
-  patient       PatientPersonalInfo @relation(fields: [patientId],references: [email])
-  doctor        Doctor? @relation(fields: [doctorId],references: [email])
-  sensorData    SensorData @relation(fields: [sensorDataId],references: [id])
+  mlResult     MLResult?
+  doctorReport DoctorReport?
+
+  testData TestData @relation(fields: [testDataId],references: [id])
+
+  patient PatientPersonalInfo @relation(fields: [patientId],references: [email])
+
+  doctor Doctor? @relation(fields: [doctorId],references: [email])
 
   @@index([patientId, doctorId])
 }
+
 
 
 model MLResult {
