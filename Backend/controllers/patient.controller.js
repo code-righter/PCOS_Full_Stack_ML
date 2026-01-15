@@ -1,5 +1,8 @@
 import prisma from "../db/prisma.js";
 import redisClient from "../config/redis.js";
+import { MLQueue } from "../queue/ml.queue.js";
+import axios from "axios";
+import logger from "../utils/logger.js"; // Import logger
 
 export const getPersonalData = async (req, res) => {
   try {
@@ -44,21 +47,34 @@ export const setPersonalData = async (req, res) => {
       waist
     } = req.body;
 
+    // Convert to correct types
+    const parsedData = {
+      cycleLength: parseInt(cycleLength, 10),      // String -> number
+      cycleType: cycleType,                         // Keep as string (assuming String in schema)
+      skinDarkening: cycleType === 'true' || cycleType === 'True' || skinDarkening === '1',  // String -> boolean
+      hairGrowth: hairGrowth === 'true' || hairGrowth === 'True' || hairGrowth === '1',
+      pimples: pimples === 'true' || pimples === 'True' || pimples === '1',
+      hairLoss: hairLoss === 'true' || hairLoss === 'True' || hairLoss === '1',
+      weightGain: weightGain === 'true' || weightGain === 'True' || weightGain === '1',
+      fastFood: fastFood === 'true' || fastFood === 'True' || fastFood === '1',
+      hip: parseInt(hip, 10),                       // String -> number
+      waist: parseInt(waist, 10)                    // String -> number
+    };
+
+    // Handle NaN for numbers
+    if (isNaN(parsedData.cycleLength)) {
+      return res.status(400).json({ error: 'Invalid cycleLength value' });
+    }
+    if (isNaN(parsedData.hip)) {
+      return res.status(400).json({ error: 'Invalid hip value' });
+    }
+    if (isNaN(parsedData.waist)) {
+      return res.status(400).json({ error: 'Invalid waist value' });
+    }
 
     const updatedInfo = await prisma.patientPersonalInfo.update({
       where: { email: userEmail },
-      data: {
-        cycleLength,
-        cycleType,
-        skinDarkening,
-        hairGrowth,
-        pimples,
-        hairLoss,
-        weightGain,
-        fastFood,
-        hip,
-        waist
-      }
+      data: parsedData
     });
 
     return res.status(200).json({
@@ -71,7 +87,6 @@ export const setPersonalData = async (req, res) => {
     return res.status(500).json({ error: "Internal server error" });
   }
 };
-
 
 export const getPatientTimeline = async (req, res) => {
   try {
@@ -272,29 +287,41 @@ export const getLiveSensorData = async (req, res) => {
 };
 
 export const saveSensorData = async (req, res) => {
+  const resource = 'Sensor/Save'; // Resource tag
+
   try {
     const userEmail = req.userEmail;
     const { code } = req.body;
 
+    // Log Entry
+    logger.info(`Request to save sensor data for code: ${code}`, { 
+      resource,
+      method: req.method,
+      user: userEmail 
+    });
+
+    // 1️⃣ Fetch from Redis
     const pairingInfo = await redisClient.get(`pairing:${code}`);
     const sensorDataRaw = await redisClient.get(`sensor:${code}`);
 
     if (!pairingInfo || !sensorDataRaw) {
+      // Logic Warning: Client might be polling too early or data expired
+      logger.warn(`Data not ready or expired for code: ${code}`, { resource });
       return res.status(400).json({ status: "pending" });
     }
 
     const { email } = JSON.parse(pairingInfo);
+    
+    // Security Check
     if (email !== userEmail) {
+      logger.warn(`Unauthorized access attempt. User ${userEmail} tried to claim data for ${email}`, { resource });
       return res.status(403).json({ error: "Unauthorized" });
     }
 
     const sensorData = JSON.parse(sensorDataRaw);
+    logger.info(`Redis data retrieved valid. Proceeding to DB storage.`, { resource });
 
-    const user = await prisma.user.findUnique({
-      where: { email: userEmail }
-    });
-    console.log('Sensor Data Received', sensorData)
-    // 1️⃣ Save sensor data
+    // 2️⃣ Save sensor data (DB)
     const savedSensor = await prisma.sensorData.create({
       data: {
         spo2: sensorData.spo2,
@@ -302,29 +329,48 @@ export const saveSensorData = async (req, res) => {
         heartRate: sensorData.heartRate,
         height: sensorData.height,
         weight: sensorData.weight,
-        patientEmail : userEmail
-      }
+        patientEmail: userEmail,
+      },
     });
-
-    // 2️⃣ Save doctor analysis entry
-    await prisma.dataForDocAnalysis.create({
+    
+    // 3️⃣ Create analysis record (DB)
+    const analysis = await prisma.dataForDocAnalysis.create({
       data: {
         patientId: userEmail,
         sensorDataId: savedSensor.id,
-        doctorId : "abhijeetkolhe@gmail.com"
-      }
+        doctorId: "abhijeetkolhe@gmail.com", // You might want to make this dynamic later
+        status: "PENDING",
+      },
     });
 
-    // Cleanup Redis
+    logger.info(`DB Records created. Analysis ID: ${analysis.id}`, { resource });
+
+    // 4️⃣ Enqueue ML job (BullMQ)
+    const job = await MLQueue.add(
+      "RUN_ML",
+      { analysisId: analysis.id },
+      {
+        attempts: 5,
+        backoff: { type: "exponential", delay: 5000 },
+        removeOnComplete: true,
+      }
+    );
+
+    logger.info(`Job enqueued in ML_QUEUE. Job ID: ${job.id}`, { resource });
+
+    // 5️⃣ Cleanup Redis
     await redisClient.del(`sensor:${code}`);
     await redisClient.del(`pairing:${code}`);
+    
+    logger.info(`Redis keys cleaned up for code: ${code}`, { resource });
 
     return res.status(201).json({
-      message: "Sensor data saved successfully"
+      message: "Sensor data saved. ML analysis in progress.",
+      analysisId: analysis.id,
     });
 
   } catch (err) {
-    console.error("Save sensor data error:", err);
+    logger.error(`Save sensor data failed: ${err.message}`, { resource });
     return res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -336,7 +382,9 @@ export const getPendingRequests = async(req, res)=>{
     const pendingRequests = await prisma.dataForDocAnalysis.findMany({
       where : {
         patientId : userEmail,
-        status : 'PENDING'
+        status : {
+          in : ["PENDING", "ML_PROCESSED", "ML_PROCESSING"]
+        }
       }
     })
 

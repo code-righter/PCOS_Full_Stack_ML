@@ -15,9 +15,9 @@ def health_check():
 @app.post("/predict", response_model=PCOSOutput)
 def predict(input_data: PCOSInput):
     pred, confidence = predict_pcos(input_data.dict())
-
+    model_version = "v1.1.2"
     return {
         "pcos_prediction": pred,
         "confidence_score": confidence,
-        "model version" : "v1.1.2"
+        "model_version" : model_version
     }

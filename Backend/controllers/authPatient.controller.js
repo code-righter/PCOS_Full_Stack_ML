@@ -21,7 +21,7 @@ export const sendOtpEmail = async (email, otp) => {
 
   try {
     await transporter.sendMail({
-      from: `"Hospital App" <${process.env.EMAIL_USER}>`,
+      from: `"Hospital App - PCOS Detect" <${process.env.EMAIL_USER}>`,
       to: email,
       subject: "Verify your email",
       html: `

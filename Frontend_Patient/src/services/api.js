@@ -1,29 +1,45 @@
 import axios from 'axios';
 
-// 1. Create the Axios instance
 const api = axios.create({
-  baseURL: 'https://pcosdetect.onrender.com/api/v1', 
+  baseURL: 'http://localhost:8080/api/v1',
   headers: {
     'Content-Type': 'application/json',
-    // REMOVE the session header from here. 
-    // It is "stale" logic. We rely 100% on the interceptor below.
   },
 });
 
-// 2. Interceptor (The Fix)
+// Request Interceptor (Your existing code)
 api.interceptors.request.use(
   (config) => {
-    // BUG FIX 1: Use the correct key 'sessionId' (matches AuthContext)
-    const sessionId = sessionStorage.getItem('sessionId'); 
-    
+    const sessionId = sessionStorage.getItem('sessionId');
     if (sessionId) {
-      // BUG FIX 2 & 3: Set the custom header key expected by your backend
-      // Do not use 'Authorization' unless your backend specifically checks for "Bearer ..."
       config.headers['x-session-id'] = sessionId;
     }
     return config;
   },
   (error) => Promise.reject(error)
+);
+
+// --- NEW: Response Interceptor (The Logout Logic) ---
+api.interceptors.response.use(
+  (response) => {
+    // If response is good, just pass it through
+    return response;
+  },
+  (error) => {
+    // If backend returns 401 (Unauthorized)
+    if (error.response && error.response.status === 401) {
+      console.warn("Session expired. Logging out...");
+      
+      // 1. Clear the storage
+      sessionStorage.removeItem('sessionId');
+      sessionStorage.removeItem('patient_profile_cache'); // Clear your cache too!
+      
+      // 2. Force Redirect to Login
+      // We use window.location to ensure a full state reset
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
 );
 
 export default api;

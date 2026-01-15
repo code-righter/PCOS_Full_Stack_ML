@@ -8,7 +8,8 @@ import {
   Wifi,
   Send,
   RefreshCw,
-  Lock
+  Lock,
+  Loader2 // Imported Loader icon
 } from "lucide-react";
 import { testService } from "../../services/testService";
 import { useToast } from "../../contexts/ToastContext";
@@ -37,8 +38,9 @@ const Test = () => {
   const { showToast } = useToast();
 
   const [securityCode, setSecurityCode] = useState(null);
-  const [connectionStatus, setConnectionStatus] = useState("idle"); // idle | waiting | connected
-  const [isLoading, setIsLoading] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState("idle"); 
+  const [isLoadingCode, setIsLoadingCode] = useState(false); // Renamed for clarity
+  const [isSubmitting, setIsSubmitting] = useState(false);   // New state for full-screen loader
 
   const pollingRef = useRef(null);
 
@@ -48,26 +50,19 @@ const Test = () => {
      STEP 1: GENERATE CODE
   -------------------------------- */
   const handleGenerateCode = async () => {
-    setIsLoading(true);
+    setIsLoadingCode(true);
     setConnectionStatus("waiting");
-    setFormData({
-      height: "",
-      weight: "",
-      heartRate: "",
-      spo2: "",
-      temperature: ""
-    });
+    setFormData({ height: "", weight: "", heartRate: "", spo2: "", temperature: "" });
 
     try {
       const res = await testService.generateCode();
       setSecurityCode(res.code);
       startPolling(res.code);
-      showToast("Test data sent to doctor successfully", "success");
     } catch (err) {
-      showToast("Failed to submit test data. Please try again.", "error");
+      showToast("Failed to generate security code", "error");
       setConnectionStatus("idle");
     } finally {
-      setIsLoading(false);
+      setIsLoadingCode(false);
     }
   };
 
@@ -91,6 +86,7 @@ const Test = () => {
             spo2: result.data.spo2 || "",
             temperature: result.data.temperature || ""
           });
+          showToast("Device connected & data received!", "success");
         }
       } catch {
         // silent retry
@@ -110,30 +106,50 @@ const Test = () => {
   -------------------------------- */
   const handleSubmit = async () => {
     if (connectionStatus !== "connected") {
-      alert("Waiting for verified sensor data");
+      showToast("Waiting for verified sensor data", "warning");
       return;
     }
 
-    try {
-      await testService.submitFullReport({ code: securityCode });
-      alert("Test data successfully sent to doctor");
+    // 1. Activate Full Screen Loader
+    setIsSubmitting(true);
 
+    try {
+      // 2. API Call
+      await testService.submitFullReport({ code: securityCode });
+      
+      // 3. Success Feedback
+      showToast("Test data sent to doctor successfully", "success");
+      
+      // 4. Reset Form
       setSecurityCode(null);
       setConnectionStatus("idle");
-      setFormData({
-        height: "",
-        weight: "",
-        heartRate: "",
-        spo2: "",
-        temperature: ""
-      });
-    } catch {
-      alert("Failed to submit test");
+      setFormData({ height: "", weight: "", heartRate: "", spo2: "", temperature: "" });
+      
+    } catch (err) {
+      // 5. Error Feedback
+      console.error(err);
+      showToast("Failed to submit test data. Please try again.", "error");
+    } finally {
+      // 6. Deactivate Loader (Always runs)
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 relative">
+      
+      {/* --- FULL SCREEN BUFFERING OVERLAY --- */}
+      {isSubmitting && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-sm transition-all duration-300">
+          <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center border border-indigo-100 animate-in zoom-in-95 duration-200">
+            <div className="relative mb-4">
+              <div className="w-12 h-12 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
+            </div>
+            <h3 className="text-lg font-bold text-slate-800">Sending Report...</h3>
+            <p className="text-sm text-slate-500 mt-1">Please do not close this window.</p>
+          </div>
+        </div>
+      )}
 
       {/* HEADER */}
       <div className="bg-white border border-slate-200 rounded-lg p-6">
@@ -155,10 +171,10 @@ const Test = () => {
         {!securityCode ? (
           <button
             onClick={handleGenerateCode}
-            disabled={isLoading}
-            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-indigo-700"
+            disabled={isLoadingCode || isSubmitting}
+            className="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
           >
-            {isLoading ? (
+            {isLoadingCode ? (
               <RefreshCw className="w-4 h-4 animate-spin" />
             ) : (
               <Lock className="w-4 h-4" />
@@ -191,8 +207,8 @@ const Test = () => {
       </div>
 
       {/* STEP 2: SENSOR DATA */}
-      <div className={`bg-white border border-slate-200 rounded-lg p-6 ${
-        connectionStatus !== "connected" ? "opacity-60" : ""
+      <div className={`bg-white border border-slate-200 rounded-lg p-6 transition-opacity duration-300 ${
+        connectionStatus !== "connected" ? "opacity-60 pointer-events-none" : "opacity-100"
       }`}>
         <h2 className="text-sm font-semibold text-slate-700 mb-4">
           Sensor Readings (Read-only)
@@ -211,11 +227,20 @@ const Test = () => {
       <div className="bg-white border border-slate-200 rounded-lg p-6">
         <button
           onClick={handleSubmit}
-          disabled={connectionStatus !== "connected"}
-          className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50"
+          disabled={connectionStatus !== "connected" || isSubmitting}
+          className="w-full flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-md text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
         >
-          <Send className="w-4 h-4" />
-          Submit Verified Test Report
+          {isSubmitting ? (
+             <>
+               <Loader2 className="w-4 h-4 animate-spin" />
+               Processing...
+             </>
+          ) : (
+             <>
+               <Send className="w-4 h-4" />
+               Submit Verified Test Report
+             </>
+          )}
         </button>
       </div>
     </div>
